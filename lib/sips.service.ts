@@ -1,8 +1,9 @@
 // import * as sql from 'mssql';
 import * as http from 'http';
-const sql = require('mssql')
+import { SipsDBConfiguration } from '../config.private';
+const sql = require('mssql');
 
-export async function mapeoPaciente(dni, pool) {
+export async function mapeoPaciente(pool, dni) {
     let query = 'SELECT TOP 1 * FROM dbo.Sys_Paciente where activo=1 and numeroDocumento=@dni order by objectId DESC;';
     let result = await new sql.Request(pool )
         .input('dni', sql.VarChar(50), dni)
@@ -11,12 +12,12 @@ export async function mapeoPaciente(dni, pool) {
     return result.recordset[0] ? result.recordset[0] : null;
 }
 
-export async function insertBeneficiario(pacienteSips, efector, pool) {
+export async function insertBeneficiario(pool, pacienteSips, efector) {
     console.log('insertBeneficiario')
     return;
 }
 
-export async function saveComprobanteSumar(datosComprobante, pool) {
+export async function saveComprobanteSumar(pool, datosComprobante) {
     console.log('saveComprobanteSumar')
     let query = "INSERT INTO dbo.PN_comprobante ( cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, " +
         " fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) " +
@@ -32,7 +33,7 @@ export async function saveComprobanteSumar(datosComprobante, pool) {
     return result && result.recordset ? result.recordset[0].id : null;
 }
 
-export async function mapeoNomenclador(codigoNomenclador, pool) {
+export async function mapeoNomenclador(pool, codigoNomenclador) {
     let query = 'SELECT * FROM [dbo].[PN_nomenclador] where id_nomenclador = @codigo';
     let resultado = await new sql.Request(pool)
         .input('codigo', sql.VarChar(50), codigoNomenclador)
@@ -41,7 +42,7 @@ export async function mapeoNomenclador(codigoNomenclador, pool) {
     return resultado.recordset[0] ? resultado.recordset[0] : null;
 }
 
-export async function mapeoEfector(codigoCUIE, pool) {
+export async function mapeoEfector(pool, codigoCUIE) {
     let query = 'SELECT * FROM dbo.Sys_efector WHERE cuie = @codigo';
     let resultado = await new sql.Request(pool)
         .input('codigo', sql.VarChar(50), codigoCUIE)
@@ -51,7 +52,7 @@ export async function mapeoEfector(codigoCUIE, pool) {
 }
 
 
-export async function getAfiliadoSumar(documento, pool) {
+export async function getAfiliadoSumar(pool, documento) {
     let query = "SELECT * FROM dbo.PN_smiafiliados WHERE afidni = @documento AND activo = 'S'";
     let resultado = await new sql.Request(pool)
         .input('documento', sql.VarChar(50), documento)
@@ -59,3 +60,45 @@ export async function getAfiliadoSumar(documento, pool) {
 
     return resultado.recordset[0] ? resultado.recordset[0] : null;;
 }
+
+export async function insertPrestaciones(pool, prestacion) {
+    console.log("aqui", prestacion)
+
+    let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[edad],[sexo],[codigo_comp]' +
+        ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia])' + 
+        ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@edad,@sexo,@codigoComp,@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia)' +
+        'SELECT SCOPE_IDENTITY() AS id';
+
+    pool = await new sql.ConnectionPool(SipsDBConfiguration).connect();
+    let result = await new sql.Request(pool)
+        .input('idComprobante', sql.Int, prestacion.id_comprobante)
+        .input('idNomenclador', sql.Int, prestacion.id_nomenclador)
+        .input('cantidad', sql.Int, 1) // Valor por defecto
+        .input('precioPrestacion', sql.Decimal, prestacion.precio_prestacion)
+        .input('idAnexo', sql.Int, 301) // Valor por defecto (No corresponde)
+        //    .input('peso', sql.Decimal, peso)
+        //    .input('tensionArterial', sql.VarChar(7), tensionArterial)
+        //    .input('diagnostico', sql.VarChar(500), diagnostico)
+        .input('edad', sql.VarChar(2), prestacion.edad)
+        .input('sexo', sql.VarChar(2), prestacion.sexo)
+        .input('codigoComp', sql.VarChar(100), prestacion.codigo)
+        .input('fechaNacimiento', sql.DateTime, prestacion.fechaNacimiento)
+        .input('fechaPrestacion', sql.DateTime, prestacion.fechaPrestacion)
+        .input('anio', sql.Int, prestacion.anio)
+        .input('mes', sql.Int, prestacion.mes)
+        .input('dia', sql.Int, prestacion.dia)
+        //    .input('talla', sql.Int, talla)
+        //    .input('perimetroCefalico', sql.VarChar(10), perimetroCefalico)
+        //    .input('semanasGestacion', sql.Int, semanasGestacion)
+        .query(query);
+
+    if (result && result.recordset) {
+        let idPrestacion = result.recordset[0].id;
+        let idDatoReportable = 1; // getIdDatoReportable();
+        let valor = 1;
+
+        return idPrestacion;
+    }
+
+    pool.close();
+}   

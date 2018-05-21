@@ -10,7 +10,7 @@ function doGet(path) {
             host: ConfigPrivate.StaticConfiguration.andesApi.ip,
             port: ConfigPrivate.StaticConfiguration.andesApi.port,
             Authentication: ConfigPrivate.StaticConfiguration.secret.token,
-            path: ConfigPrivate.StaticConfiguration.URL.turnos + path,
+            path: ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + path,
             headers: {
                 'Authorization': ConfigPrivate.StaticConfiguration.secret.token,
                 'Content-Type': 'application/json'

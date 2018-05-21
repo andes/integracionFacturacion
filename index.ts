@@ -73,7 +73,7 @@ export async function ejecutar() {
                 let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados);
                 let pacienteSips = await sipsService.mapeoPaciente(datosPrestacion.turno.paciente.documento, pool);
         
-                await sipsService.insertBeneficiario(pacienteSips, null, pool); // ??? Este método va o no va?
+                await sipsService.insertBeneficiario(pool, pacienteSips, null); // ??? Este método va o no va?
                 let idComprobante = await sipsService.saveComprobanteSumar(comprobante, pool);
                 let nomenclador : any = await andesService.getConfiguracionPrestacion(datosPrestacion.tipoPrestacion.conceptId);
     
@@ -83,7 +83,8 @@ export async function ejecutar() {
                 let codigoProfesional = 'P99';
                 
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomenclador, codigoPatologia, codigoProfesional);
-    
+                let prestacion = creaPrestaciones(datosPrestacion, idComprobante, codigo);
+                let idPrestacion = await sipsService.insertPrestaciones(pool, prestacion);
                 // savePrestacionSUMAR(prestacion, idComprobante, datosPaciente.fechaNacimiento, datosPaciente.sexo, datosPaciente.edad, codigo);
                 // savePrestacionSumar(idComprobante, nomenclador, datosPaciente)
     
@@ -121,4 +122,32 @@ function crearCodigoComp(datosComprobante, datosAgenda, pacienteSips, nomenclado
 
     console.log('codigoFinal inicio', codigoFinal, 'codigoFinal FIN')
     return codigoFinal;
+}
+
+async function creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips) {
+    let prestacion = {
+        id: null,
+        id_comprobante: idComprobante,
+        id_nomenclador: null,
+        cantidad: 1,
+        codigo: codigo,
+        sexo: pacienteSips.sexo,
+        edad: pacienteSips.edad,
+        // fechaPrestacion: moment(fechaPrestacion).format('YYYY-MM-DD'),
+        fechaPrestacion: datosPrestacion,
+        anio: moment(this.fechaPrestacion).format('YYYY'),
+        mes: moment(this.fechaPrestacion).format('MM'),
+        dia: moment(this.fechaPrestacion).format('DD'),
+        // fechaNacimiento: moment(datosPaciente.fechaNacimiento).format('YYYY-MM-DD'),
+        fechaNacimiento: pacienteSips.fechaNacimiento,
+        precio_prestacion: null,
+        id_anexo: 301,
+        diagnostico: 'A97' // HARDCODED 
+    }
+
+    let nomenclador: any = await andesService.getConfiguracionPrestacion(pacienteSips.conceptId);
+    prestacion.precio_prestacion = nomenclador.precio;
+    prestacion.id_nomenclador = nomenclador.id;
+    
+    return prestacion;
 }
