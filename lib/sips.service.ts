@@ -251,3 +251,20 @@ function existepaciente(paciente) {
         })();
     });
 }
+
+export async function mapeoProfesional(pool, dni) {
+    let query = 'SELECT top 1 idProfesional FROM dbo.Sys_Profesional WHERE activo=1 AND numeroDocumento = @dni;';
+    let result = await new sql.Request(pool)
+        .input('dni', sql.VarChar(50), dni)
+        .query(query);
+    return result.recordset[0] ? result.recordset[0].idProfesional : 0;
+}
+
+
+export async function mapeoObraSocial(pool, codigoObraSocial) {
+    let query = 'SELECT idObraSocial, cod_puco FROM dbo.Sys_ObraSocial WHERE cod_PUCO = @codigo;';
+    let result = await new sql.Request(pool)
+    .input('codigo', sql.Int,  codigoObraSocial)
+    .query(query);
+    return result.recordset[0] ? result.recordset[0].idObraSocial : 0;
+}
