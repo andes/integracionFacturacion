@@ -1,5 +1,5 @@
 let schedule = require('node-schedule');
-import * as ConfigPrivate from '../lib/config.private';
+import * as ConfigPrivate from '../config.private';
 
 class Scheduler {
 
