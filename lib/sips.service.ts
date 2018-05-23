@@ -1,45 +1,16 @@
-// import * as sql from 'mssql';
+import * as moment from 'moment';
 import * as http from 'http';
 import { SipsDBConfiguration } from '../config.private';
 const sql = require('mssql');
 
 export async function mapeoPaciente(pool, dni) {
+    console.log('mapeoPaciente')
     let query = 'SELECT TOP 1 * FROM dbo.Sys_Paciente where activo=1 and numeroDocumento=@dni order by objectId DESC;';
     let result = await new sql.Request(pool )
         .input('dni', sql.VarChar(50), dni)
         .query(query);
 
     return result.recordset[0] ? result.recordset[0] : null;
-}
-
-export async function insertBeneficiario(pool, pacienteSips, efector) {
-    console.log('insertBeneficiario')
-    return;
-}
-
-export async function saveComprobanteSumar(pool, datosComprobante) {
-    console.log('saveComprobanteSumar')
-    let query = "INSERT INTO dbo.PN_comprobante ( cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, " +
-        " fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) " +
-        "values (@cuie," + null + "," + null + ",'" + datosComprobante.fechaComprobante + "'," + "'" + datosComprobante.claveBeneficiario + "'" +
-        "," + datosComprobante.idAfiliado + ",'" + datosComprobante.fechaCarga + "','" + datosComprobante.comentario + "', @marca,'" + 
-        datosComprobante.periodo + "','" + datosComprobante.activo + "'," + datosComprobante.idTipoPrestacion + ")";
-    
-    let result = await new sql.Request(pool)
-        .input('cuie', sql.VarChar(10), datosComprobante.cuie)
-        .input('marca', sql.VarChar(10), datosComprobante.marca)
-        .query(query);
-
-    return result && result.recordset ? result.recordset[0].id : null;
-}
-
-export async function mapeoNomenclador(pool, codigoNomenclador) {
-    let query = 'SELECT * FROM [dbo].[PN_nomenclador] where id_nomenclador = @codigo';
-    let resultado = await new sql.Request(pool)
-        .input('codigo', sql.VarChar(50), codigoNomenclador)
-        .query(query);
-
-    return resultado.recordset[0] ? resultado.recordset[0] : null;
 }
 
 export async function mapeoEfector(pool, codigoCUIE) {
@@ -51,54 +22,232 @@ export async function mapeoEfector(pool, codigoCUIE) {
     return resultado.recordset[0] ? resultado.recordset[0] : null;;
 }
 
-
-export async function getAfiliadoSumar(pool, documento) {
-    let query = "SELECT * FROM dbo.PN_smiafiliados WHERE afidni = @documento AND activo = 'S'";
-    let resultado = await new sql.Request(pool)
-        .input('documento', sql.VarChar(50), documento)
+export async function mapeoServicio(pool, id) {
+    let query = 'SELECT idServicio FROM dbo.Sys_servicio WHERE idServicio = @id';
+    let result = await new sql.Request(pool)
+        .input('id', sql.VarChar(50), id)
         .query(query);
-
-    return resultado.recordset[0] ? resultado.recordset[0] : null;;
+    return result.recordset[0] ? result.recordset[0].idServicio : null;
 }
 
-export async function insertPrestaciones(pool, prestacion) {
-    console.log("aqui", prestacion)
+export function pacienteSipsFactory(paciente: any, idEfectorSips: any) {
+    let pacienteSips = {
+        idEfector: idEfectorSips,
+        nombre: paciente.nombre,
+        apellido: paciente.apellido,
+        numeroDocumento: paciente.documento,
+        idSexo: (paciente.sexo === 'masculino' ? 3 : paciente.sexo === 'femenino' ? 2 : 1),
+        fechaNacimiento: moment(paciente.fechaNacimiento).format('YYYYMMDD'),
+        idEstado: 3,
+        /* Estado Validado en SIPS*/
+        idMotivoNI: 0,
+        idPais: 54,
+        idProvincia: 139,
+        idNivelInstruccion: 0,
+        idSituacionLaboral: 0,
+        idProfesion: 0,
+        idOcupacion: 0,
+        calle: '',
+        numero: 0,
+        piso: '',
+        departamento: '',
+        manzana: '',
+        idBarrio: -1,
+        idLocalidad: 52,
+        idDepartamento: 557,
+        idProvinciaDomicilio: 139,
+        referencia: '',
+        informacionContacto: '',
+        cronico: 0,
+        idObraSocial: 499,
+        idUsuario: '1486739', //ID USUARIO POR DEFECTO
+        fechaAlta: moment().format('YYYYMMDD HH:mm:ss'),
+        fechaDefuncion: '19000101',
+        fechaUltimaActualizacion: moment().format('YYYYMMDD HH:mm:ss'),
+        idEstadoCivil: 0,
+        idEtnia: 0,
+        idPoblacion: 0,
+        idIdioma: 0,
+        otroBarrio: '',
+        camino: '',
+        campo: '',
+        esUrbano: 1,
+        lote: '',
+        parcela: '',
+        edificio: '',
+        activo: 1,
+        fechaAltaObraSocial: '19000101',
+        numeroAfiliado: null,
+        numeroExtranjero: '',
+        telefonoFijo: 0,
+        telefonoCelular: 0,
+        email: '',
+        latitud: 0,
+        longitud: 0,
+        objectId: paciente._id
+    };
 
-    let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[edad],[sexo],[codigo_comp]' +
-        ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia])' + 
-        ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@edad,@sexo,@codigoComp,@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia)' +
-        'SELECT SCOPE_IDENTITY() AS id';
+    return pacienteSips;
+}
 
-    pool = await new sql.ConnectionPool(SipsDBConfiguration).connect();
-    let result = await new sql.Request(pool)
-        .input('idComprobante', sql.Int, prestacion.id_comprobante)
-        .input('idNomenclador', sql.Int, prestacion.id_nomenclador)
-        .input('cantidad', sql.Int, 1) // Valor por defecto
-        .input('precioPrestacion', sql.Decimal, prestacion.precio_prestacion)
-        .input('idAnexo', sql.Int, 301) // Valor por defecto (No corresponde)
-        //    .input('peso', sql.Decimal, peso)
-        //    .input('tensionArterial', sql.VarChar(7), tensionArterial)
-        //    .input('diagnostico', sql.VarChar(500), diagnostico)
-        .input('edad', sql.VarChar(2), prestacion.edad)
-        .input('sexo', sql.VarChar(2), prestacion.sexo)
-        .input('codigoComp', sql.VarChar(100), prestacion.codigo)
-        .input('fechaNacimiento', sql.DateTime, prestacion.fechaNacimiento)
-        .input('fechaPrestacion', sql.DateTime, prestacion.fechaPrestacion)
-        .input('anio', sql.Int, prestacion.anio)
-        .input('mes', sql.Int, prestacion.mes)
-        .input('dia', sql.Int, prestacion.dia)
-        //    .input('talla', sql.Int, talla)
-        //    .input('perimetroCefalico', sql.VarChar(10), perimetroCefalico)
-        //    .input('semanasGestacion', sql.Int, semanasGestacion)
-        .query(query);
+export async function insertaPacienteSips(paciente: any) {
+    return new Promise(async function (resolve, reject) {
+        try {
+            let idPacienteGrabadoSips;
+            let idPaciente = await existepaciente(paciente);
 
-    if (result && result.recordset) {
-        let idPrestacion = result.recordset[0].id;
-        let idDatoReportable = 1; // getIdDatoReportable();
-        let valor = 1;
+            if (idPaciente === 0) {
 
-        return idPrestacion;
-    }
+                let query = 'INSERT INTO dbo.Sys_Paciente ' +
+                    ' ( idEfector ,' +
+                    ' apellido , ' +
+                    ' nombre, ' +
+                    ' numeroDocumento, ' +
+                    ' idSexo, ' +
+                    ' fechaNacimiento, ' +
+                    ' idEstado, ' +
+                    ' idMotivoNI, ' +
+                    ' idPais, ' +
+                    ' idProvincia, ' +
+                    ' idNivelInstruccion, ' +
+                    ' idSituacionLaboral, ' +
+                    ' idProfesion, ' +
+                    ' idOcupacion, ' +
+                    ' calle, ' +
+                    ' numero, ' +
+                    ' piso, ' +
+                    ' departamento, ' +
+                    ' manzana, ' +
+                    ' idBarrio, ' +
+                    ' idLocalidad, ' +
+                    ' idDepartamento, ' +
+                    ' idProvinciaDomicilio, ' +
+                    ' referencia, ' +
+                    ' informacionContacto, ' +
+                    ' cronico, ' +
+                    ' idObraSocial, ' +
+                    ' idUsuario, ' +
+                    ' fechaAlta, ' +
+                    ' fechaDefuncion, ' +
+                    ' fechaUltimaActualizacion, ' +
+                    ' idEstadoCivil, ' +
+                    ' idEtnia, ' +
+                    ' idPoblacion, ' +
+                    ' idIdioma, ' +
+                    ' otroBarrio, ' +
+                    ' camino, ' +
+                    ' campo, ' +
+                    ' esUrbano, ' +
+                    ' lote, ' +
+                    ' parcela, ' +
+                    ' edificio, ' +
+                    ' activo, ' +
+                    ' fechaAltaObraSocial, ' +
+                    ' numeroAfiliado, ' +
+                    ' numeroExtranjero, ' +
+                    ' telefonoFijo, ' +
+                    ' telefonoCelular, ' +
+                    ' email, ' +
+                    ' latitud, ' +
+                    ' longitud, ' +
+                    ' objectId ) ' +
+                    ' VALUES( ' +
+                    paciente.idEfector + ', ' +
+                    '\'' + paciente.apellido + '\',' +
+                    '\'' + paciente.nombre + '\', ' +
+                    paciente.numeroDocumento + ', ' +
+                    paciente.idSexo + ', ' +
+                    '\'' + paciente.fechaNacimiento + '\',' +
+                    paciente.idEstado + ', ' +
+                    paciente.idMotivoNI + ', ' +
+                    paciente.idPais + ', ' +
+                    paciente.idProvincia + ', ' +
+                    paciente.idNivelInstruccion + ', ' +
+                    paciente.idSituacionLaboral + ', ' +
+                    paciente.idProfesion + ', ' +
+                    paciente.idOcupacion + ', ' +
+                    '\'' + paciente.calle + '\', ' +
+                    paciente.numero + ', ' +
+                    '\'' + paciente.piso + '\', ' +
+                    '\'' + paciente.departamento + '\', ' +
+                    '\'' + paciente.manzana + '\', ' +
+                    paciente.idBarrio + ', ' +
+                    paciente.idLocalidad + ', ' +
+                    paciente.idDepartamento + ', ' +
+                    paciente.idProvinciaDomicilio + ', ' +
+                    '\'' + paciente.referencia + '\', ' +
+                    '\'' + paciente.informacionContacto + '\', ' +
+                    paciente.cronico + ', ' +
+                    paciente.idObraSocial + ', ' +
+                    paciente.idUsuario + ', ' +
+                    '\'' + paciente.fechaAlta + '\', ' +
+                    '\'' + paciente.fechaDefuncion + '\', ' +
+                    '\'' + paciente.fechaUltimaActualizacion + '\', ' +
+                    paciente.idEstadoCivil + ', ' +
+                    paciente.idEtnia + ', ' +
+                    paciente.idPoblacion + ', ' +
+                    paciente.idIdioma + ', ' +
+                    '\'' + paciente.otroBarrio + '\', ' +
+                    '\'' + paciente.camino + '\', ' +
+                    '\'' + paciente.campo + '\', ' +
+                    paciente.esUrbano + ', ' +
+                    '\'' + paciente.lote + '\', ' +
+                    '\'' + paciente.parcela + '\', ' +
+                    '\'' + paciente.edificio + '\', ' +
+                    paciente.activo + ', ' +
+                    '\'' + paciente.fechaAltaObraSocial + '\', ' +
+                    '\'' + paciente.numeroAfiliado + '\', ' +
+                    '\'' + paciente.numeroExtranjero + '\', ' +
+                    '\'' + paciente.telefonoFijo + '\', ' +
+                    '\'' + paciente.telefonoCelular + '\', ' +
+                    '\'' + paciente.email + '\', ' +
+                    '\'' + paciente.latitud + '\', ' +
+                    '\'' + paciente.longitud + '\', ' +
+                    '\'' + paciente.objectId + '\' ' +
+                    ') ' +
+                    ' select SCOPE_IDENTITY() as id';
+                    
+                return new Promise((resolve: any, reject: any) => {
+                    return new sql.Request()
+                        .query(query)
+                        .then(result => {
+                            resolve(result.recordset[0].id);
+                        }).catch(err => {
+                            reject(err);
+                        });
+                });
+            } else {
+                idPacienteGrabadoSips = idPaciente;
+            }
 
-    pool.close();
-}   
+            resolve(idPacienteGrabadoSips);
+        } catch (ex) {
+            reject(ex);
+        }
+    });
+}
+
+function existepaciente(paciente) {
+    let idpaciente;
+    return new Promise((resolve: any, reject: any) => {
+        (async function () {
+            try {
+                let query = 'SELECT idPaciente FROM dbo.Sys_Paciente WHERE objectId = @objectId';
+                let result = await new sql.Request()
+                    .input('objectId', sql.VarChar(50), paciente.objectId)
+                    .query(query);
+
+                if (typeof result[0] !== 'undefined') {
+                    idpaciente = result[0].idPaciente;
+                    resolve(idpaciente);
+                } else {
+                    idpaciente = 0;
+                    resolve(idpaciente);
+                }
+
+            } catch (err) {
+                reject(err);
+            }
+        })();
+    });
+}
