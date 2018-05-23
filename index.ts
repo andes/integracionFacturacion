@@ -65,20 +65,17 @@ export async function ejecutar() {
                 let codigoEfectorCUIE = 'Q06391';
                 let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados);
                 let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
-                console.log("aca paciente",pacienteSips)
                 // await sipsServiceSUMAR.insertBeneficiario(pool, pacienteSips, null); // NO VA!
                 
                 let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
-                console.log(idComprobante);
+                console.log("IDCOMPROBANTE",idComprobante);
                 // if (datosPrestacion.tipoPrestacion) {
                 //     nomenclador = await andesServiceSUMAR.getConfiguracionPrestacion(datosPrestacion.tipoPrestacion.conceptId);
                 // }
 
                 // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
                 let nomenclador : any = await andesService.getConfiguracionPrestacion('2091000013100');
-                console.log('nomenclador', nomenclador);
                 let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, nomenclador.nomencladorSUMAR.id);
-                console.log('nomencladorSips', nomencladorSips);
     
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud) 
                 let codigoPatologia = 'A98';
@@ -88,7 +85,7 @@ export async function ejecutar() {
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
                 let prestacion = await creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, prestacion);
-            console.log(idPrestacion);
+            console.log("IDPRESTACION",idPrestacion);
             }
         }
     }
@@ -121,12 +118,10 @@ function crearCodigoComp(datosComprobante, datosAgenda, pacienteSips, nomenclado
     let fechaNacParseada = moment(fechaNac).format('YYYY') + '' + moment(fechaNac).format('MM') + '' + moment(fechaNac).format('DD');
     let codigoFinal = cuie + fechaPrestParseada + claveB + sexo + fechaNacParseada + edad + grupo + codigo + diagnostico + codigoProfesional;
 
-    console.log('codigoFinal inicio', codigoFinal, 'codigoFinal FIN')
     return codigoFinal;
 }
 
 async function creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips,datosAgenda) {
-    console.log('creaPrestaciones datosPrestacion');
     let prestacion = {
         id: null,
         id_comprobante: idComprobante,

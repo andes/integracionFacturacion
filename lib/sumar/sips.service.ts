@@ -19,7 +19,7 @@ export async function insertBeneficiario(pool, pacienteSips, efector) {
 }
 
 export async function saveComprobanteSumar(pool, datosComprobante) {
-    console.log('saveComprobanteSumar')
+    console.log('------------saveComprobanteSumar------------------')
     let query = "INSERT INTO dbo.PN_comprobante ( cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, " +
         " fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) " +
         "values (@cuie," + null + "," + null + ",'" + datosComprobante.fechaComprobante + "'," + "'" + datosComprobante.claveBeneficiario + "'" +
@@ -73,8 +73,7 @@ export async function getAfiliadoSumar(pool, documento) {
 }
 
 export async function insertPrestaciones(pool, prestacion) {
-console.log('insertPrestaciones prestacion.fechaNacimiento', prestacion.fechaNacimiento)
-console.log('insertPrestaciones prestacion.fechaPrestacion', prestacion.fechaPrestacion)
+
     let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[edad],[sexo],[codigo_comp]' +
         // ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' + 
         ')' +

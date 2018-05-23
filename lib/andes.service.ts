@@ -46,5 +46,5 @@ export async function getProfesional(idProfesional) {
 }
 
 export async function getConfiguracionPrestacion(conceptId) {
-    return await doGet('/configuracionPrestacion/' + conceptId);
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/configuracionPrestacion/' + conceptId);
 }
