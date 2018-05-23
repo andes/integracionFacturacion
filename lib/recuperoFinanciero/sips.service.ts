@@ -1,6 +1,6 @@
 // import * as sql from 'mssql';
 import * as http from 'http';
-import { SipsDBConfiguration } from '../config.private';
+import { SipsDBConfiguration } from '../../config.private';
 const sql = require('mssql');
 
 export async function mapeoPaciente(pool, dni) {

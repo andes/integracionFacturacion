@@ -22,10 +22,12 @@ let toArray = (stream): Promise<any[]> => {
 
 export async function ejecutar() {
     sql.close();
+    console.log('before connect')
     let pool = await sql.connect(SipsDBConfiguration);
+    console.log('after connect')
     let turnoFacturacion;
     let turnosFacturacion : any = await andesServiceSUMAR.getTurnosFacturacionPendiente();
-    let datosSumar = [];
+    let datosSumar = [];0
     let datosRecupero = [];
     
     for (let i = 0; i < turnosFacturacion.length; i++) {
@@ -39,7 +41,7 @@ export async function ejecutar() {
         }
 
         await facturarSumar(pool, datosSumar);
-        await facturarRecupero(pool, datosRecupero);
+        // await facturarRecupero(pool, datosRecupero);
     }
 
     sql.close();
@@ -54,18 +56,19 @@ export async function ejecutar() {
         let datosPrestacion;
         for (var i = 0; i < datosPrestaciones.length; i++) {
             datosPrestacion = datosPrestaciones[i];
+
             let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, datosPrestacion.turno.paciente.documento);
-            
+
             if (afiliadoSumar) {
                 // let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
                 let codigoEfectorCUIE = 'Q06391';
                 let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados);
                 let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
-                
+                console.log("aca paciente",pacienteSips)
                 // await sipsServiceSUMAR.insertBeneficiario(pool, pacienteSips, null); // NO VA!
                 
                 let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
-                
+                console.log(idComprobante);
                 // if (datosPrestacion.tipoPrestacion) {
                 //     nomenclador = await andesServiceSUMAR.getConfiguracionPrestacion(datosPrestacion.tipoPrestacion.conceptId);
                 // }
@@ -82,9 +85,9 @@ export async function ejecutar() {
                 let codigoProfesional = 'P99';
                 
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
-                let prestacion = await creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips);
+                let prestacion = await creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, prestacion);
-            
+            console.log(idPrestacion);
             }
         }
     }
@@ -110,7 +113,7 @@ function crearCodigoComp(datosComprobante, datosAgenda, pacienteSips, nomenclado
     let claveB = datosComprobante.claveBeneficiario;
     let fechaNac = pacienteSips.fechaNacimiento;
     let edad = moment(datosAgenda.fecha).diff(pacienteSips.fechaNacimiento, 'years');
-    let sexo = pacienteSips.sexo;
+    let sexo = (pacienteSips.idSexo === 3 ? 'M' : pacienteSips.idSexo === 2 ? 'F' : 1);
     let grupo = nomenclador.grupo;
     let codigo = nomenclador.codigo;
     let fechaPrestParseada = moment(datosAgenda.fecha).format('YYYY') + '' + moment(datosAgenda.fecha).format('MM') + '' + moment(datosAgenda.fecha).format('DD');
@@ -121,7 +124,7 @@ function crearCodigoComp(datosComprobante, datosAgenda, pacienteSips, nomenclado
     return codigoFinal;
 }
 
-async function creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips) {
+async function creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips,datosAgenda) {
     console.log('creaPrestaciones datosPrestacion');
     let prestacion = {
         id: null,
@@ -129,8 +132,8 @@ async function creaPrestaciones(datosPrestacion, idComprobante, codigo, paciente
         id_nomenclador: nomencladorSips.id,
         cantidad: 1,
         codigo: codigo,
-        sexo: pacienteSips.sexo,
-        edad: pacienteSips.edad,
+        sexo: (pacienteSips.idSexo === 3 ? 'M' : pacienteSips.idSexo === 2 ? 'F' : 1),
+        edad:  moment(datosAgenda.fecha).diff(pacienteSips.fechaNacimiento, 'years'),
         // fechaPrestacion: moment(fechaPrestacion).format('YYYY-MM-DD'),
         fechaPrestacion: datosPrestacion.turno.horaInicio,
         anio: moment(datosPrestacion.turno.horaInicio).format('YYYY'),
@@ -140,7 +143,7 @@ async function creaPrestaciones(datosPrestacion, idComprobante, codigo, paciente
         fechaNacimiento: pacienteSips.fechaNacimiento,
         precio_prestacion: nomencladorSips.precio,
         id_anexo: 301,
-        diagnostico: 'A97' // HARDCODED 
+        diagnostico: 'A98' // HARDCODED 
     }
 
     return prestacion;
@@ -161,9 +164,10 @@ async function facturarRecupero(pool, datosPrestaciones: any) {
 
         if (!idPacienteSips) {
             let resultadoBusquedaPaciente: any = await andesService.getPaciente(datosPrestaciones.paciente.id);
+            console.log(resultadoBusquedaPaciente)
             let idNivelCentral = 127; // Por defecto seteamos como efector nivel central (ID 127)
             let pacienteSips = sipsService.pacienteSipsFactory(resultadoBusquedaPaciente.paciente, idNivelCentral);
-            idPacienteSips = await sipsService.insertaPacienteSips(pacienteSips);
+           // idPacienteSips = await sipsService.insertaPacienteSips(pacienteSips);
         }
         let unProfesional: any = await andesService.getProfesional(datosPrestaciones.profesionales[0]._id);
         // let rfProfesional = await mapeoProfesional(unProfesional.documento);
