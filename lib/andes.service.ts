@@ -44,3 +44,7 @@ export async function getPaciente(idPaciente) {
 export async function getProfesional(idProfesional) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.tm + '/profesional/' + idProfesional);
 }
+
+export async function getConfiguracionPrestacion(conceptId) {
+    return await doGet('/configuracionPrestacion/' + conceptId);
+}

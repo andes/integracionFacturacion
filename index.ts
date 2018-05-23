@@ -4,6 +4,7 @@ import * as sipsService from './lib/sips.service';
 import * as andesServiceRF from './lib/recuperoFinanciero/andes.service';
 import * as andesServiceSUMAR from './lib/sumar/andes.service';
 import * as sipsServiceSUMAR from './lib/sumar/sips.service';
+import * as sipsServiceRF from './lib/recuperoFinanciero/sips.service';
 import * as moment from 'moment';
 import * as Verificator from './lib/verificador';
 
@@ -71,7 +72,7 @@ export async function ejecutar() {
                 // }
 
                 // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
-                let nomenclador : any = await andesServiceSUMAR.getConfiguracionPrestacion('2091000013100');
+                let nomenclador : any = await andesService.getConfiguracionPrestacion('2091000013100');
                 console.log('nomenclador', nomenclador);
                 let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, nomenclador.nomencladorSUMAR.id);
                 console.log('nomencladorSips', nomencladorSips);
@@ -155,7 +156,7 @@ async function facturarRecupero(pool, datosPrestaciones: any) {
         // let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
         let codigoEfectorCUIE = 'Q06391';
 
-        // let idEfector = await sipsService.mapeoEfector(pool, datosPrestacion.efector.id);
+        let idEfector = await sipsService.mapeoEfector(pool, datosPrestacion.efector.id);
         let idServicio = await sipsService.mapeoServicio(pool, 148); //PARAMETRO HARDCODEADO ???????
         let idPacienteSips = await sipsService.mapeoPaciente(pool, datosPrestaciones.paciente.documento);
 
@@ -166,22 +167,24 @@ async function facturarRecupero(pool, datosPrestaciones: any) {
             idPacienteSips = await sipsService.insertaPacienteSips(pacienteSips);
         }
         let unProfesional: any = await andesService.getProfesional(datosPrestaciones.profesionales[0]._id);
-        // let rfProfesional = await mapeoProfesional(unProfesional.documento);
-        // let rfObraSocial = (turnoRF.paciente.obraSocial && turnoRF.paciente.obraSocial.codigo) ? await mapeoObraSocial(turnoRF.paciente.obraSocial.codigo) : null;
+        let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento);
 
-        // let codificacion = turnoRF.motivoConsulta ? turnoRF.motivoConsulta : getCodificacion(turnoRF.diagnostico, turnoRF);
-        // // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
-        // let codNomenclador = await getNomencladorByConceptId(turnoRF.tipoPrestacion.conceptId);
-        // let idTipoNomenclador = await getTipoNomenclador(rfObraSocial, turnoRF.fecha);
-        // let nomenclador = await mapeoNomenclador(codNomenclador, idTipoNomenclador);
-        // let rfTipoPractica = nomenclador.idTipoPractica;
+        let rfObraSocial = (datosPrestacion.paciente.obraSocial && datosPrestacion.paciente.obraSocial.codigo) ? await sipsService.mapeoObraSocial(pool, datosPrestacion.paciente.obraSocial.codigo) : null;
 
-        // crearOrden(orden, turnoRF, idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion);
-        // orden.idOrden = await guardarOrden(orden);
+        let codificacion = datosPrestaciones.motivoConsulta ? datosPrestaciones.motivoConsulta1 : getCodificacion(datosPrestaciones);
+        // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
+        let configuracionPrestacion : any = await andesService.getConfiguracionPrestacion(datosPrestacion.tipoPrestacion.conceptId);
+        let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01'; 
+        let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, datosPrestaciones.fecha);
+        let nomenclador = await sipsServiceRF.mapeoNomenclador(pool,codNomenclador, idTipoNomenclador);
+        let rfTipoPractica = nomenclador.idTipoPractica;
 
-        // let ordenDetalleSips: any = await crearOdenDetalle(orden, nomenclador);
-        // ordenDetalleSips.idOrdenDetalle = await guardarOrdenDetalle(ordenDetalleSips);
-        // orden.detalles.push(ordenDetalleSips);
+        crearOrden(orden, datosPrestacion, idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion);
+        orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
+
+        let ordenDetalleSips: any = await crearOdenDetalle(orden, nomenclador);
+        ordenDetalleSips.idOrdenDetalle = await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
+        orden.detalles.push(ordenDetalleSips);
     }
 }
 
@@ -213,5 +216,48 @@ function ordenFactory() {
         facturaFueraConvenio: 0,
         esInternacion: 0,
         detalles: [],
+    };
+}
+
+function getCodificacion(datosPrestaciones) {
+    let result = 'sin codificar';
+    let codificacion = datosPrestaciones.diagnostico.codificaciones[0] ? datosPrestaciones.codificaciones[0] : null;
+
+    if (codificacion) {
+        if (codificacion.codificacionAuditoria && codificacion.codificacionAuditoria.codigo) {
+            result = codificacion.codificacionAuditoria.codigo;
+        } else if (codificacion.codificacionProfesional.cie10 && codificacion.codificacionProfesional.cie10.codigo) {
+            result = codificacion.codificacionProfesional.cie10.codigo;
+        }
+    }
+
+    return result;
+}
+
+function crearOrden(orden, turno, rfEfector, rfServicio, rfPaciente , rfProfesional, rfTipoPractica, rfObraSocial, rfDiagnostico) {
+    orden.idEfector = rfEfector;
+    orden.idServicio = rfServicio;
+    orden.idPaciente = rfPaciente;
+    orden.idProfesional = rfProfesional;
+    orden.idTipoPractica = rfTipoPractica;
+    orden.idObraSocial = rfObraSocial;
+    orden.observaciones = rfDiagnostico;
+    orden.fecha = turno.fecha;
+    orden.fechaPractica = turno.fecha;
+
+    // orden.detalles.push(await crearOdenDetalle(orden));
+    // return orden;
+}
+
+async function crearOdenDetalle(orden, nomenclador) {
+    return {
+        idOrdenDetalle: null,
+        idOrden: orden.idOrden,
+        idEfector: orden.idEfector,
+        idNomenclador: nomenclador.idNomenclador,
+        descripcion: nomenclador.descripcion,
+        cantidad: 1,
+        valorUnidad: nomenclador.valorUnidad,
+        ajuste: 0,
     };
 }

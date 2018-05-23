@@ -40,7 +40,3 @@ export async function getTurnosFacturacionPendiente() {
 export async function getEfector(idEfector) {
     return await doGet('/efector/' + idEfector);
 }
-
-export async function getConfiguracionPrestacion(conceptId) {
-    return await doGet('/configuracionPrestacion/' + conceptId);
-}
