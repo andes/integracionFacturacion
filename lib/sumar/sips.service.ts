@@ -73,11 +73,11 @@ export async function getAfiliadoSumar(pool, documento) {
 }
 
 export async function insertPrestaciones(pool, prestacion) {
-
-    let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[diagnostico],[edad],[sexo],[codigo_comp]' +
+console.log(prestacion)
+    let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[peso],[tension_arterial],[diagnostico],[edad],[sexo],[codigo_comp],[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' +
         // ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' + 
         ')' +
-        ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@diagnostico,@edad,@sexo,@codigoComp' +
+        ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@peso,@tensionArterial,@diagnostico,@edad,@sexo,@codigoComp,@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia' +
         // ',@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia' +
         ')' +
         'SELECT SCOPE_IDENTITY() AS id';
@@ -89,17 +89,17 @@ export async function insertPrestaciones(pool, prestacion) {
         .input('cantidad', sql.Int, 1) // Valor por defecto
         .input('precioPrestacion', sql.Decimal, prestacion.precio_prestacion)
         .input('idAnexo', sql.Int, 301) // Valor por defecto (No corresponde)
-        //    .input('peso', sql.Decimal, peso)
-        //    .input('tensionArterial', sql.VarChar(7), tensionArterial)
+        .input('peso', sql.Decimal, 0)
+        .input('tensionArterial', sql.VarChar(7), '00/00')
         .input('diagnostico', sql.VarChar(500), prestacion.diagnostico)
         .input('edad', sql.VarChar(2), prestacion.edad)
         .input('sexo', sql.VarChar(2), prestacion.sexo)
         .input('codigoComp', sql.VarChar(100), prestacion.codigo)
-        // .input('fechaNacimiento', sql.DateTime, prestacion.fechaNacimiento)
-        // .input('fechaPrestacion', sql.DateTime, prestacion.fechaPrestacion)
-        // .input('anio', sql.Int, prestacion.anio)
-        // .input('mes', sql.Int, prestacion.mes)
-        // .input('dia', sql.Int, prestacion.dia)
+        .input('fechaNacimiento', sql.DateTime, prestacion.fechaNacimiento)
+        .input('fechaPrestacion', sql.DateTime, prestacion.fechaPrestacion)
+        .input('anio', sql.Int, prestacion.anio)
+        .input('mes', sql.Int, prestacion.mes)
+        .input('dia', sql.Int, prestacion.dia)
 
         //    .input('talla', sql.Int, talla)
         //    .input('perimetroCefalico', sql.VarChar(10), perimetroCefalico)

@@ -40,3 +40,9 @@ export async function getTurnosFacturacionPendiente() {
 export async function getEfector(idEfector) {
     return await doGet('/efector/' + idEfector);
 }
+
+
+export async function cambioEstado(idTurno) {
+    console.log(idTurno)
+    return await doGet('/cambioEstado/' + idTurno);
+}
