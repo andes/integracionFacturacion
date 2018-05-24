@@ -6,7 +6,7 @@ const sql = require('mssql');
 export async function mapeoPaciente(pool, dni) {
     console.log('mapeoPaciente')
     let query = 'SELECT TOP 1 * FROM dbo.Sys_Paciente where activo=1 and numeroDocumento=@dni order by objectId DESC;';
-    let result = await new sql.Request(pool )
+    let result = await new sql.Request(pool)
         .input('dni', sql.VarChar(50), dni)
         .query(query);
 
@@ -19,14 +19,14 @@ export async function insertBeneficiario(pool, pacienteSips, efector) {
 }
 
 export async function saveComprobanteSumar(pool, datosComprobante) {
-    console.log('saveComprobanteSumar')
+    console.log('------------saveComprobanteSumar------------------')
     let query = "INSERT INTO dbo.PN_comprobante ( cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, " +
         " fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) " +
         "values (@cuie," + null + "," + null + ",'" + datosComprobante.fechaComprobante + "'," + "'" + datosComprobante.claveBeneficiario + "'" +
-        "," + datosComprobante.idAfiliado + ",'" + datosComprobante.fechaCarga + "','" + datosComprobante.comentario + "', @marca,'" + 
+        "," + datosComprobante.idAfiliado + ",'" + datosComprobante.fechaCarga + "','" + datosComprobante.comentario + "', @marca,'" +
         datosComprobante.periodo + "','" + datosComprobante.activo + "'," + datosComprobante.idTipoPrestacion + ")" +
         ' SELECT SCOPE_IDENTITY() AS id';
-    
+
     let result = await new sql.Request(pool)
         .input('cuie', sql.VarChar(10), datosComprobante.cuie)
         .input('marca', sql.VarChar(10), datosComprobante.marca)
@@ -50,7 +50,7 @@ export async function mapeoNomenclador(pool, idNomenclador) {
             grupo: resultado.recordset[0].grupo
         }
     }
-    return res;    
+    return res;
 }
 
 export async function mapeoEfector(pool, codigoCUIE) {
@@ -73,12 +73,11 @@ export async function getAfiliadoSumar(pool, documento) {
 }
 
 export async function insertPrestaciones(pool, prestacion) {
-console.log('insertPrestaciones prestacion.fechaNacimiento', prestacion.fechaNacimiento)
-console.log('insertPrestaciones prestacion.fechaPrestacion', prestacion.fechaPrestacion)
-    let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[edad],[sexo],[codigo_comp]' +
+console.log(prestacion)
+    let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[peso],[tension_arterial],[diagnostico],[edad],[sexo],[codigo_comp],[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' +
         // ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' + 
         ')' +
-        ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@edad,@sexo,@codigoComp' +
+        ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@peso,@tensionArterial,@diagnostico,@edad,@sexo,@codigoComp,@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia' +
         // ',@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia' +
         ')' +
         'SELECT SCOPE_IDENTITY() AS id';
@@ -90,17 +89,17 @@ console.log('insertPrestaciones prestacion.fechaPrestacion', prestacion.fechaPre
         .input('cantidad', sql.Int, 1) // Valor por defecto
         .input('precioPrestacion', sql.Decimal, prestacion.precio_prestacion)
         .input('idAnexo', sql.Int, 301) // Valor por defecto (No corresponde)
-        //    .input('peso', sql.Decimal, peso)
-        //    .input('tensionArterial', sql.VarChar(7), tensionArterial)
-        //    .input('diagnostico', sql.VarChar(500), diagnostico)
+        .input('peso', sql.Decimal, 0)
+        .input('tensionArterial', sql.VarChar(7), '00/00')
+        .input('diagnostico', sql.VarChar(500), prestacion.diagnostico)
         .input('edad', sql.VarChar(2), prestacion.edad)
         .input('sexo', sql.VarChar(2), prestacion.sexo)
         .input('codigoComp', sql.VarChar(100), prestacion.codigo)
-        // .input('fechaNacimiento', sql.DateTime, prestacion.fechaNacimiento)
-        // .input('fechaPrestacion', sql.DateTime, prestacion.fechaPrestacion)
-        // .input('anio', sql.Int, prestacion.anio)
-        // .input('mes', sql.Int, prestacion.mes)
-        // .input('dia', sql.Int, prestacion.dia)
+        .input('fechaNacimiento', sql.DateTime, prestacion.fechaNacimiento)
+        .input('fechaPrestacion', sql.DateTime, prestacion.fechaPrestacion)
+        .input('anio', sql.Int, prestacion.anio)
+        .input('mes', sql.Int, prestacion.mes)
+        .input('dia', sql.Int, prestacion.dia)
 
         //    .input('talla', sql.Int, talla)
         //    .input('perimetroCefalico', sql.VarChar(10), perimetroCefalico)
@@ -113,7 +112,7 @@ console.log('insertPrestaciones prestacion.fechaPrestacion', prestacion.fechaPre
         let valor = 1;
 
         return idPrestacion;
-    
+
     }
 
     pool.close();

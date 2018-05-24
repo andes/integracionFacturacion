@@ -41,3 +41,8 @@ export async function getTurnosFacturacionPendiente() {
 export async function getEfector(idEfector) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/efector/' + idEfector);
 }
+
+
+export async function cambioEstado(idTurno) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstado/' + idTurno);
+}

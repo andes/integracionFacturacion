@@ -44,3 +44,4 @@ export async function getEfector(idEfector) {
 export async function getConfiguracionPrestacion(conceptId) {
     return await doGet('/configuracionPrestacion/' + conceptId);
 }
+
