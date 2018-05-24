@@ -25,7 +25,7 @@ export async function ejecutar() {
     sql.close();
     let pool = await sql.connect(SipsDBConfiguration);
     let turnoFacturacion;
-    let turnosFacturacion : any = await andesServiceSUMAR.getTurnosFacturacionPendiente();
+    let turnosFacturacion : any = await andesService.getTurnosFacturacionPendiente();
     let datosSumar = [];
     let datosRecupero = [];
     
@@ -34,8 +34,7 @@ export async function ejecutar() {
 
         if (pacienteAplicaSUMAR(turnoFacturacion.turno.paciente)) {
             datosSumar.push(turnoFacturacion);
-        } 
-        else { // SI NO APLICA SUMAR VA A RECUPERO POR DEFECTO???
+        }  else {
             datosRecupero.push(turnoFacturacion);
         }
 
@@ -61,7 +60,7 @@ export async function ejecutar() {
                 // let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
                 let codigoEfectorCUIE = 'Q06391';
                 let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados);
-                let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
+                let pacienteSips = await sipsService.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
                 
                 // await sipsServiceSUMAR.insertBeneficiario(pool, pacienteSips, null); // NO VA!
                 
@@ -148,7 +147,6 @@ async function creaPrestaciones(datosPrestacion, idComprobante, codigo, paciente
 }
 
 async function facturarRecupero(pool, datosPrestaciones: any) {
-    console.log('facturarRecupero')
     let datosPrestacion;
     for (var i = 0; i < datosPrestaciones.length; i++) {
         datosPrestacion = datosPrestaciones[i];
@@ -156,22 +154,26 @@ async function facturarRecupero(pool, datosPrestaciones: any) {
         // let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
         let codigoEfectorCUIE = 'Q06391';
 
-        let idEfector = await sipsService.mapeoEfector(pool, datosPrestacion.efector.id);
+        let idEfector = await sipsService.mapeoEfector(pool, codigoEfectorCUIE);
         let idServicio = await sipsService.mapeoServicio(pool, 148); //PARAMETRO HARDCODEADO ???????
-        let idPacienteSips = await sipsService.mapeoPaciente(pool, datosPrestaciones.paciente.documento);
+        let idPacienteSips;
+        let pacienteSips = await sipsService.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
 
-        if (!idPacienteSips) {
-            let resultadoBusquedaPaciente: any = await andesService.getPaciente(datosPrestaciones.paciente.id);
+        if (!pacienteSips) {
+            let resultadoBusquedaPaciente: any = await andesService.getPaciente(datosPrestacion.turno.paciente.id);
             let idNivelCentral = 127; // Por defecto seteamos como efector nivel central (ID 127)
-            let pacienteSips = sipsService.pacienteSipsFactory(resultadoBusquedaPaciente.paciente, idNivelCentral);
+            let pacienteSips = sipsService.pacienteSipsFactory(resultadoBusquedaPaciente, idNivelCentral);
             idPacienteSips = await sipsService.insertaPacienteSips(pacienteSips);
+        } else {
+            idPacienteSips = pacienteSips.idPaciente;
         }
-        let unProfesional: any = await andesService.getProfesional(datosPrestaciones.profesionales[0]._id);
+
+        let unProfesional: any = await andesService.getProfesional(datosPrestacion.datosAgenda.profesionales[0]._id);
         let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento);
 
-        let rfObraSocial = (datosPrestacion.paciente.obraSocial && datosPrestacion.paciente.obraSocial.codigo) ? await sipsService.mapeoObraSocial(pool, datosPrestacion.paciente.obraSocial.codigo) : null;
+        let rfObraSocial = (datosPrestacion.turno.paciente.obraSocial && datosPrestacion.turno.paciente.obraSocial.codigo) ? await sipsService.mapeoObraSocial(pool, datosPrestacion.paciente.obraSocial.codigo) : null;
 
-        let codificacion = datosPrestaciones.motivoConsulta ? datosPrestaciones.motivoConsulta1 : getCodificacion(datosPrestaciones);
+        let codificacion = datosPrestacion.turno.motivoConsulta ? datosPrestacion.turno.motivoConsulta : getCodificacion(datosPrestaciones);
         // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
         let configuracionPrestacion : any = await andesService.getConfiguracionPrestacion(datosPrestacion.tipoPrestacion.conceptId);
         let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01'; 

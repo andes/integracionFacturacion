@@ -1,5 +1,5 @@
 import * as http from 'http';
-import * as ConfigPrivate from './../config.private';
+import * as ConfigPrivate from './../../config.private';
 
 
 // declare const Promise;

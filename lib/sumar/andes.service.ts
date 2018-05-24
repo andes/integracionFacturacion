@@ -1,16 +1,17 @@
 import * as http from 'http';
 import * as ConfigPrivate from './../../config.private';
-
+                            
 
 // declare const Promise;
 
 function doGet(path) {
+    console.log(path)
     return new Promise((resolve: any, reject: any) => {
         let options = {
             host: ConfigPrivate.StaticConfiguration.andesApi.ip,
             port: ConfigPrivate.StaticConfiguration.andesApi.port,
             Authentication: ConfigPrivate.StaticConfiguration.secret.token,
-            path: ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + path,
+            path: path,
             headers: {
                 'Authorization': ConfigPrivate.StaticConfiguration.secret.token,
                 'Content-Type': 'application/json'
@@ -34,9 +35,9 @@ function doGet(path) {
 }
 
 export async function getTurnosFacturacionPendiente() {
-    return await doGet('/facturacion/SUMAR/turnos');
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/facturacion/SUMAR/turnos');
 }
 
 export async function getEfector(idEfector) {
-    return await doGet('/efector/' + idEfector);
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/efector/' + idEfector);
 }

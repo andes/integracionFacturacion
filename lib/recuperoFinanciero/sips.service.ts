@@ -1,6 +1,6 @@
 // import * as sql from 'mssql';
 import * as http from 'http';
-import { SipsDBConfiguration } from '../config.private';
+import { SipsDBConfiguration } from '../../config.private';
 const sql = require('mssql');
 
 
@@ -86,7 +86,7 @@ export async function guardarOrden(pool, orden) {
         .input('numero', sql.Int, orden.numero)
         .input('periodo', sql.Char(10) , orden.periodo)
         .input('idServicio', sql.Int, orden.idServicio)
-        .input('idPaciente', sql.Int, orden.idPaciente)
+        .input('idPaciente', sql.Int, orden.idPaciente) 
         .input('idProfesional', sql.Int, orden.idProfesional)
         .input('fecha', sql.DateTime, orden.fecha)
         .input('fechaPractica', sql.DateTime, orden.fechaPractica)
