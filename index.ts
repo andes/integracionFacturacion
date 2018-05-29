@@ -29,6 +29,7 @@ export async function ejecutar() {
     let datosSumar = [];
     let datosRecupero = [];
 
+
     for (let i = 0; i < turnosFacturacion.length; i++) {
         turnoFacturacion = turnosFacturacion[i];
 
@@ -41,7 +42,7 @@ export async function ejecutar() {
         await facturarSumar(datosSumar);
         await facturarRecupero(datosRecupero);
     }
-
+    // await facturarPrestacionSinturno(pool);
     sql.close();
 
     function pacienteAplicaSUMAR(paciente) {
@@ -79,6 +80,37 @@ export async function ejecutar() {
                     let idTurno = datosPrestacion.turno._id
                     cambioEstadoTurno(idTurno)
                 }
+            }
+        }
+    }
+
+    async function facturarPrestacionSinturno() {
+        let prestaciones: any = await andesService.getPrestacionesSinTurno('2091000013100');
+        for (let index = 0; index < prestaciones.length; index++) {
+            let prestacion = prestaciones[index];
+
+            // compruebo que este en afiliados
+            let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, prestacion.paciente.documento);
+            if (afiliadoSumar) {
+                // mapeo con el efector
+                let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(prestacion.createdBy.organizacion._id);
+                // creacion del json para el comprobante
+                let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados);
+                // insert del comprobante y devuelve id
+                let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
+                // mapeo paciente
+                let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, prestacion.paciente.documento);
+                // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
+                let nomenclador: any = await andesService.getConfiguracionPrestacion('2091000013100');
+                let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, nomenclador.nomencladorSUMAR.id);
+
+                // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
+                let codigoPatologia = 'A98';
+                // Valor de codigoProfesional por defecto es P99
+                let codigoProfesional = 'P99';
+                let codigo = crearCodigoComp(comprobante, prestacion.createdAt, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
+                // let unaPrestacion = await creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
+                // let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
             }
         }
     }
@@ -141,13 +173,19 @@ export async function ejecutar() {
         andesServiceSUMAR.cambioEstado(id);
     }
 
+
+    async function prestacionesSinTurno(conceptId) {
+
+    }
+
+
     async function facturarRecupero(datosPrestaciones: any) {
         let datosPrestacion;
         for (let i = 0; i < datosPrestaciones.length; i++) {
             datosPrestacion = datosPrestaciones[i];
+
             let orden = ordenFactory();
             let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
-
             let efector = await sipsService.mapeoEfector(pool, codigoEfectorCUIE);
             let idServicio = await sipsService.mapeoServicio(pool, 148); // PARAMETRO HARDCODEADO ???????
             let idPacienteSips;
