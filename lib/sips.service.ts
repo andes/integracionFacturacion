@@ -4,7 +4,6 @@ import { SipsDBConfiguration } from '../config.private';
 const sql = require('mssql');
 
 export async function mapeoPaciente(pool, dni) {
-    console.log('mapeoPaciente')
     let query = 'SELECT TOP 1 * FROM dbo.Sys_Paciente where activo=1 and numeroDocumento=@dni order by objectId DESC;';
     let result = await new sql.Request(pool )
         .input('dni', sql.VarChar(50), dni)
@@ -19,7 +18,7 @@ export async function mapeoEfector(pool, codigoCUIE) {
         .input('codigo', sql.VarChar(50), codigoCUIE)
         .query(query);
 
-    return resultado.recordset[0] ? resultado.recordset[0] : null;;
+    return resultado.recordset[0] ? resultado.recordset[0] : null;
 }
 
 export async function mapeoServicio(pool, id) {
@@ -60,7 +59,7 @@ export function pacienteSipsFactory(paciente: any, idEfectorSips: any) {
         informacionContacto: '',
         cronico: 0,
         idObraSocial: 499,
-        idUsuario: '1486739', //ID USUARIO POR DEFECTO
+        idUsuario: '1486739', // ID USUARIO POR DEFECTO
         fechaAlta: moment().format('YYYYMMDD HH:mm:ss'),
         fechaDefuncion: '19000101',
         fechaUltimaActualizacion: moment().format('YYYYMMDD HH:mm:ss'),
@@ -238,6 +237,7 @@ export async function mapeoProfesional(pool, dni) {
     let result = await new sql.Request(pool)
         .input('dni', sql.VarChar(50), dni)
         .query(query);
+
     return result.recordset[0] ? result.recordset[0].idProfesional : 0;
 }
 
@@ -247,5 +247,6 @@ export async function mapeoObraSocial(pool, codigoObraSocial) {
     let result = await new sql.Request(pool)
     .input('codigo', sql.Int,  codigoObraSocial)
     .query(query);
+
     return result.recordset[0] ? result.recordset[0].idObraSocial : 0;
 }

@@ -17,7 +17,7 @@ class Scheduler {
             schedule.scheduleJob(job.when, function () {
                 action();
             });
-        }); 
+        });
 
     }
 

@@ -1,10 +1,10 @@
 // import * as sql from 'mssql';
 import * as http from 'http';
 import { SipsDBConfiguration } from '../../config.private';
+import { DateTime } from 'mssql';
 const sql = require('mssql');
 
 export async function mapeoPaciente(pool, dni) {
-    console.log('mapeoPaciente')
     let query = 'SELECT TOP 1 * FROM dbo.Sys_Paciente where activo=1 and numeroDocumento=@dni order by objectId DESC;';
     let result = await new sql.Request(pool)
         .input('dni', sql.VarChar(50), dni)
@@ -13,23 +13,22 @@ export async function mapeoPaciente(pool, dni) {
     return result.recordset[0] ? result.recordset[0] : null;
 }
 
-export async function insertBeneficiario(pool, pacienteSips, efector) {
-    console.log('insertBeneficiario')
-    return;
-}
-
 export async function saveComprobanteSumar(pool, datosComprobante) {
-    console.log('------------saveComprobanteSumar------------------')
-    let query = "INSERT INTO dbo.PN_comprobante ( cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, " +
-        " fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) " +
-        "values (@cuie," + null + "," + null + ",'" + datosComprobante.fechaComprobante + "'," + "'" + datosComprobante.claveBeneficiario + "'" +
-        "," + datosComprobante.idAfiliado + ",'" + datosComprobante.fechaCarga + "','" + datosComprobante.comentario + "', @marca,'" +
-        datosComprobante.periodo + "','" + datosComprobante.activo + "'," + datosComprobante.idTipoPrestacion + ")" +
-        ' SELECT SCOPE_IDENTITY() AS id';
+    let query = 'INSERT INTO dbo.PN_comprobante (cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) ' +
+        ' values (@cuie, NULL, NULL, @fechaComprobante, @claveBeneficiario, @idAfiliado, @fechaCarga, @comentario, @marca, @periodo, @activo, @idTipoPrestacion)' +
+    ' SELECT SCOPE_IDENTITY() AS id';
 
     let result = await new sql.Request(pool)
         .input('cuie', sql.VarChar(10), datosComprobante.cuie)
+        .input('fechaComprobante', sql.DateTime, datosComprobante.fechaComprobante)
+        .input('claveBeneficiario', sql.VarChar(50), datosComprobante.claveBeneficiario)
+        .input('idAfiliado', sql.Int, datosComprobante.idAfiliado)
+        .input('fechaCarga', sql.DateTime, datosComprobante.fechaCarga)
+        .input('comentario', sql.VarChar(500), datosComprobante.comentario)
         .input('marca', sql.VarChar(10), datosComprobante.marca)
+        .input('periodo', sql.VarChar(7), datosComprobante.periodo)
+        .input('activo', sql.VarChar(1), datosComprobante.activo)
+        .input('idTipoPrestacion', sql.Int, datosComprobante.idTipoPrestacion)
         .query(query);
 
     return result && result.recordset ? result.recordset[0].id : null;
@@ -50,6 +49,7 @@ export async function mapeoNomenclador(pool, idNomenclador) {
             grupo: resultado.recordset[0].grupo
         }
     }
+
     return res;
 }
 
@@ -59,23 +59,23 @@ export async function mapeoEfector(pool, codigoCUIE) {
         .input('codigo', sql.VarChar(50), codigoCUIE)
         .query(query);
 
-    return resultado.recordset[0] ? resultado.recordset[0] : null;;
+    return resultado.recordset[0] ? resultado.recordset[0] : null;
 }
 
 
 export async function getAfiliadoSumar(pool, documento) {
-    let query = "SELECT * FROM dbo.PN_smiafiliados WHERE afidni = @documento AND activo = 'S'";
+    let query = 'SELECT * FROM dbo.PN_smiafiliados WHERE afidni = @documento AND activo = @activo';
     let resultado = await new sql.Request(pool)
         .input('documento', sql.VarChar(50), documento)
+        .input('activo', sql.VarChar(1), 'S')
         .query(query);
 
-    return resultado.recordset[0] ? resultado.recordset[0] : null;;
+    return resultado.recordset[0] ? resultado.recordset[0] : null;
 }
 
 export async function insertPrestaciones(pool, prestacion) {
-console.log(prestacion)
     let query = 'INSERT INTO [dbo].[PN_prestacion] ([id_comprobante],[id_nomenclador],[cantidad],[precio_prestacion],[id_anexo],[peso],[tension_arterial],[diagnostico],[edad],[sexo],[codigo_comp],[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' +
-        // ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' + 
+        // ',[fecha_nacimiento],[fecha_prestacion],[anio],[mes],[dia]' +
         ')' +
         ' VALUES (@idComprobante,@idNomenclador,@cantidad,@precioPrestacion,@idAnexo,@peso,@tensionArterial,@diagnostico,@edad,@sexo,@codigoComp,@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia' +
         // ',@fechaNacimiento,@fechaPrestacion,@anio,@mes,@dia' +
@@ -116,4 +116,4 @@ console.log(prestacion)
     }
 
     pool.close();
-}   
+}

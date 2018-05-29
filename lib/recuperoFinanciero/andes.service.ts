@@ -15,15 +15,13 @@ function doGet(path) {
                 'Authorization': ConfigPrivate.StaticConfiguration.secret.token,
                 'Content-Type': 'application/json'
             }
-        }  
-
-        let result : any;
+        }
 
         let req = http.get(options, function (res) {
             res.on('data', function (body) {
-                resolve(JSON.parse(body.toString()));                
+                resolve(JSON.parse(body.toString()));
             });
-        });    
+        });
 
         req.on('error', function (e) {
             reject(e.message);
