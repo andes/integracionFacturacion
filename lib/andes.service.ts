@@ -44,11 +44,11 @@ export async function getTurnosFacturacionPendiente() {
 }
 
 export async function getPaciente(idPaciente) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.mpi + '/pacientes/' + idPaciente);
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.mpi + '/pacientes/' + idPaciente);    
 }
 
 export async function getProfesional(idProfesional) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.tm + '/profesional/' + idProfesional);
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.tm + '/profesionales/' + idProfesional);
 }
 
 export async function getConfiguracionPrestacion(conceptId) {

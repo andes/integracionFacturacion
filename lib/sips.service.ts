@@ -31,7 +31,7 @@ export async function mapeoServicio(pool, id) {
 }
 
 export function pacienteSipsFactory(paciente: any, idEfectorSips: any) {
-    let pacienteSips = {
+    return {
         idEfector: idEfectorSips,
         nombre: paciente.nombre,
         apellido: paciente.apellido,
@@ -86,146 +86,127 @@ export function pacienteSipsFactory(paciente: any, idEfectorSips: any) {
         longitud: 0,
         objectId: paciente._id
     };
-
-    return pacienteSips;
 }
 
-// export async function insertaPacienteSips(paciente: any) {
-//     return new Promise(async function (resolve, reject) {
-//         try {
-//             let idPacienteGrabadoSips;
-//             let idPaciente = await existepaciente(paciente);
+export async function insertaPacienteSips(paciente: any) {
+    let idPacienteGrabadoSips;
+    let idPaciente = await existepaciente(paciente);
 
-//             if (idPaciente === 0) {
+    let result;
+    if (idPaciente === 0) {
 
-//                 let query = 'INSERT INTO dbo.Sys_Paciente ' +
-//                     ' ( idEfector ,' +
-//                     ' apellido , ' +
-//                     ' nombre, ' +
-//                     ' numeroDocumento, ' +
-//                     ' idSexo, ' +
-//                     ' fechaNacimiento, ' +
-//                     ' idEstado, ' +
-//                     ' idMotivoNI, ' +
-//                     ' idPais, ' +
-//                     ' idProvincia, ' +
-//                     ' idNivelInstruccion, ' +
-//                     ' idSituacionLaboral, ' +
-//                     ' idProfesion, ' +
-//                     ' idOcupacion, ' +
-//                     ' calle, ' +
-//                     ' numero, ' +
-//                     ' piso, ' +
-//                     ' departamento, ' +
-//                     ' manzana, ' +
-//                     ' idBarrio, ' +
-//                     ' idLocalidad, ' +
-//                     ' idDepartamento, ' +
-//                     ' idProvinciaDomicilio, ' +
-//                     ' referencia, ' +
-//                     ' informacionContacto, ' +
-//                     ' cronico, ' +
-//                     ' idObraSocial, ' +
-//                     ' idUsuario, ' +
-//                     ' fechaAlta, ' +
-//                     ' fechaDefuncion, ' +
-//                     ' fechaUltimaActualizacion, ' +
-//                     ' idEstadoCivil, ' +
-//                     ' idEtnia, ' +
-//                     ' idPoblacion, ' +
-//                     ' idIdioma, ' +
-//                     ' otroBarrio, ' +
-//                     ' camino, ' +
-//                     ' campo, ' +
-//                     ' esUrbano, ' +
-//                     ' lote, ' +
-//                     ' parcela, ' +
-//                     ' edificio, ' +
-//                     ' activo, ' +
-//                     ' fechaAltaObraSocial, ' +
-//                     ' numeroAfiliado, ' +
-//                     ' numeroExtranjero, ' +
-//                     ' telefonoFijo, ' +
-//                     ' telefonoCelular, ' +
-//                     ' email, ' +
-//                     ' latitud, ' +
-//                     ' longitud, ' +
-//                     ' objectId ) ' +
-//                     ' VALUES( ' +
-//                     paciente.idEfector + ', ' +
-//                     '\'' + paciente.apellido + '\',' +
-//                     '\'' + paciente.nombre + '\', ' +
-//                     paciente.numeroDocumento + ', ' +
-//                     paciente.idSexo + ', ' +
-//                     '\'' + paciente.fechaNacimiento + '\',' +
-//                     paciente.idEstado + ', ' +
-//                     paciente.idMotivoNI + ', ' +
-//                     paciente.idPais + ', ' +
-//                     paciente.idProvincia + ', ' +
-//                     paciente.idNivelInstruccion + ', ' +
-//                     paciente.idSituacionLaboral + ', ' +
-//                     paciente.idProfesion + ', ' +
-//                     paciente.idOcupacion + ', ' +
-//                     '\'' + paciente.calle + '\', ' +
-//                     paciente.numero + ', ' +
-//                     '\'' + paciente.piso + '\', ' +
-//                     '\'' + paciente.departamento + '\', ' +
-//                     '\'' + paciente.manzana + '\', ' +
-//                     paciente.idBarrio + ', ' +
-//                     paciente.idLocalidad + ', ' +
-//                     paciente.idDepartamento + ', ' +
-//                     paciente.idProvinciaDomicilio + ', ' +
-//                     '\'' + paciente.referencia + '\', ' +
-//                     '\'' + paciente.informacionContacto + '\', ' +
-//                     paciente.cronico + ', ' +
-//                     paciente.idObraSocial + ', ' +
-//                     paciente.idUsuario + ', ' +
-//                     '\'' + paciente.fechaAlta + '\', ' +
-//                     '\'' + paciente.fechaDefuncion + '\', ' +
-//                     '\'' + paciente.fechaUltimaActualizacion + '\', ' +
-//                     paciente.idEstadoCivil + ', ' +
-//                     paciente.idEtnia + ', ' +
-//                     paciente.idPoblacion + ', ' +
-//                     paciente.idIdioma + ', ' +
-//                     '\'' + paciente.otroBarrio + '\', ' +
-//                     '\'' + paciente.camino + '\', ' +
-//                     '\'' + paciente.campo + '\', ' +
-//                     paciente.esUrbano + ', ' +
-//                     '\'' + paciente.lote + '\', ' +
-//                     '\'' + paciente.parcela + '\', ' +
-//                     '\'' + paciente.edificio + '\', ' +
-//                     paciente.activo + ', ' +
-//                     '\'' + paciente.fechaAltaObraSocial + '\', ' +
-//                     '\'' + paciente.numeroAfiliado + '\', ' +
-//                     '\'' + paciente.numeroExtranjero + '\', ' +
-//                     '\'' + paciente.telefonoFijo + '\', ' +
-//                     '\'' + paciente.telefonoCelular + '\', ' +
-//                     '\'' + paciente.email + '\', ' +
-//                     '\'' + paciente.latitud + '\', ' +
-//                     '\'' + paciente.longitud + '\', ' +
-//                     '\'' + paciente.objectId + '\' ' +
-//                     ') ' +
-//                     ' select SCOPE_IDENTITY() as id';
-                    
-//                 return new Promise((resolve: any, reject: any) => {
-//                     return new sql.Request()
-//                         .query(query)
-//                         .then(result => {
-//                             resolve(result.recordset[0].id);
-//                         }).catch(err => {
-//                             reject(err);
-//                         });
-//                 });
-//             } else {
-//                 idPacienteGrabadoSips = idPaciente;
-//             }
-
-//             resolve(idPacienteGrabadoSips);
-//         } catch (ex) {
-//             reject(ex);
-//         }
-//     });
-// }
+        let query = 'INSERT INTO dbo.Sys_Paciente ' +
+            ' ( idEfector ,' +
+            ' apellido , ' +
+            ' nombre, ' +
+            ' numeroDocumento, ' +
+            ' idSexo, ' +
+            ' fechaNacimiento, ' +
+            ' idEstado, ' +
+            ' idMotivoNI, ' +
+            ' idPais, ' +
+            ' idProvincia, ' +
+            ' idNivelInstruccion, ' +
+            ' idSituacionLaboral, ' +
+            ' idProfesion, ' +
+            ' idOcupacion, ' +
+            ' calle, ' +
+            ' numero, ' +
+            ' piso, ' +
+            ' departamento, ' +
+            ' manzana, ' +
+            ' idBarrio, ' +
+            ' idLocalidad, ' +
+            ' idDepartamento, ' +
+            ' idProvinciaDomicilio, ' +
+            ' referencia, ' +
+            ' informacionContacto, ' +
+            ' cronico, ' +
+            ' idObraSocial, ' +
+            ' idUsuario, ' +
+            ' fechaAlta, ' +
+            ' fechaDefuncion, ' +
+            ' fechaUltimaActualizacion, ' +
+            ' idEstadoCivil, ' +
+            ' idEtnia, ' +
+            ' idPoblacion, ' +
+            ' idIdioma, ' +
+            ' otroBarrio, ' +
+            ' camino, ' +
+            ' campo, ' +
+            ' esUrbano, ' +
+            ' lote, ' +
+            ' parcela, ' +
+            ' edificio, ' +
+            ' activo, ' +
+            ' fechaAltaObraSocial, ' +
+            ' numeroAfiliado, ' +
+            ' numeroExtranjero, ' +
+            ' telefonoFijo, ' +
+            ' telefonoCelular, ' +
+            ' email, ' +
+            ' latitud, ' +
+            ' longitud, ' +
+            ' objectId ) ' +
+            ' VALUES( ' +
+            paciente.idEfector + ', ' +
+            '\'' + paciente.apellido + '\',' +
+            '\'' + paciente.nombre + '\', ' +
+            paciente.numeroDocumento + ', ' +
+            paciente.idSexo + ', ' +
+            '\'' + paciente.fechaNacimiento + '\',' +
+            paciente.idEstado + ', ' +
+            paciente.idMotivoNI + ', ' +
+            paciente.idPais + ', ' +
+            paciente.idProvincia + ', ' +
+            paciente.idNivelInstruccion + ', ' +
+            paciente.idSituacionLaboral + ', ' +
+            paciente.idProfesion + ', ' +
+            paciente.idOcupacion + ', ' +
+            '\'' + paciente.calle + '\', ' +
+            paciente.numero + ', ' +
+            '\'' + paciente.piso + '\', ' +
+            '\'' + paciente.departamento + '\', ' +
+            '\'' + paciente.manzana + '\', ' +
+            paciente.idBarrio + ', ' +
+            paciente.idLocalidad + ', ' +
+            paciente.idDepartamento + ', ' +
+            paciente.idProvinciaDomicilio + ', ' +
+            '\'' + paciente.referencia + '\', ' +
+            '\'' + paciente.informacionContacto + '\', ' +
+            paciente.cronico + ', ' +
+            paciente.idObraSocial + ', ' +
+            paciente.idUsuario + ', ' +
+            '\'' + paciente.fechaAlta + '\', ' +
+            '\'' + paciente.fechaDefuncion + '\', ' +
+            '\'' + paciente.fechaUltimaActualizacion + '\', ' +
+            paciente.idEstadoCivil + ', ' +
+            paciente.idEtnia + ', ' +
+            paciente.idPoblacion + ', ' +
+            paciente.idIdioma + ', ' +
+            '\'' + paciente.otroBarrio + '\', ' +
+            '\'' + paciente.camino + '\', ' +
+            '\'' + paciente.campo + '\', ' +
+            paciente.esUrbano + ', ' +
+            '\'' + paciente.lote + '\', ' +
+            '\'' + paciente.parcela + '\', ' +
+            '\'' + paciente.edificio + '\', ' +
+            paciente.activo + ', ' +
+            '\'' + paciente.fechaAltaObraSocial + '\', ' +
+            '\'' + paciente.numeroAfiliado + '\', ' +
+            '\'' + paciente.numeroExtranjero + '\', ' +
+            '\'' + paciente.telefonoFijo + '\', ' +
+            '\'' + paciente.telefonoCelular + '\', ' +
+            '\'' + paciente.email + '\', ' +
+            '\'' + paciente.latitud + '\', ' +
+            '\'' + paciente.longitud + '\', ' +
+            '\'' + paciente.objectId + '\' ' +
+            ') ' +
+            ' select SCOPE_IDENTITY() as id'
+        result = await new sql.Request().query(query);
+    }
+    return (result && result.recordset[0]) ? result.recordset[0].id : null;
+}
 
 function existepaciente(paciente) {
     let idpaciente;
