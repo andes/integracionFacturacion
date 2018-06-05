@@ -29,7 +29,7 @@ export async function ejecutar() {
     let datosSumar = [];
     let datosRecupero = [];
 
-
+    
     for (let i = 0; i < turnosFacturacion.length; i++) {
         turnoFacturacion = turnosFacturacion[i];
 
@@ -42,7 +42,7 @@ export async function ejecutar() {
         await facturarSumar(datosSumar);
         await facturarRecupero(datosRecupero);
     }
-    // await facturarPrestacionSinturno(pool);
+    // await facturarPrestacionSinturno();
     sql.close();
 
     function pacienteAplicaSUMAR(paciente) {
@@ -154,12 +154,10 @@ export async function ejecutar() {
             codigo: codigo,
             sexo: (pacienteSips.idSexo === 3 ? 'M' : pacienteSips.idSexo === 2 ? 'F' : 1),
             edad: moment(datosAgenda.fecha).diff(pacienteSips.fechaNacimiento, 'years'),
-            // fechaPrestacion: moment(fechaPrestacion).format('YYYY-MM-DD'),
             fechaPrestacion: new Date(datosPrestacion.turno.horaInicio),
             anio: moment(datosPrestacion.turno.horaInicio).format('YYYY'),
             mes: moment(datosPrestacion.turno.horaInicio).format('MM'),
             dia: moment(datosPrestacion.turno.horaInicio).format('DD'),
-            // fechaNacimiento: moment(datosPaciente.fechaNacimiento).format('YYYY-MM-DD'),
             fechaNacimiento: new Date(pacienteSips.fechaNacimiento),
             precio_prestacion: nomencladorSips.precio,
             id_anexo: 301,
@@ -173,11 +171,9 @@ export async function ejecutar() {
         andesServiceSUMAR.cambioEstado(id);
     }
 
+    // async function prestacionesSinTurno(conceptId) {
 
-    async function prestacionesSinTurno(conceptId) {
-
-    }
-
+    // }
 
     async function facturarRecupero(datosPrestaciones: any) {
         let datosPrestacion;
@@ -193,8 +189,7 @@ export async function ejecutar() {
 
             if (!pacienteSips) {
                 let resultadoBusquedaPaciente: any = await andesService.getPaciente(datosPrestacion.turno.paciente.id);
-                let idNivelCentral = 127; // Por defecto seteamos como efector nivel central (ID 127)
-                pacienteSips = sipsService.pacienteSipsFactory(resultadoBusquedaPaciente, idNivelCentral);
+                pacienteSips = sipsService.pacienteSipsFactory(resultadoBusquedaPaciente, efector.idEfector);
                 idPacienteSips = await sipsService.insertaPacienteSips(pacienteSips);
             } else {
                 idPacienteSips = pacienteSips.idPaciente;
