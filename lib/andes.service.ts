@@ -39,7 +39,7 @@ function doGet(path) {
 }
 
 export async function getTurnosFacturacionPendiente() {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/facturacion/SUMAR/turnos');
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/facturacion/turnos');
 }
 
 export async function getPaciente(idPaciente) {
