@@ -42,7 +42,7 @@ export async function ejecutar() {
         await facturarSumar(datosSumar);
         await facturarRecupero(datosRecupero);
     }
-    // await facturarPrestacionSinturno(pool);
+    //  await facturarPrestacionSinturno(pool);
     sql.close();
 
     function pacienteAplicaSUMAR(paciente) {
@@ -73,10 +73,11 @@ export async function ejecutar() {
                 let codigoProfesional = 'P99';
 
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
-                let prestacion = await creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
+                let prestacion = await creaPrestaciones(datosPrestacion.turno.horaInicio, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, prestacion);
 
                 if (idPrestacion) {
+                    console.log("cambio")
                     let idTurno = datosPrestacion.turno._id
                     cambioEstadoTurno(idTurno)
                 }
@@ -84,7 +85,7 @@ export async function ejecutar() {
         }
     }
 
-    async function facturarPrestacionSinturno() {
+    async function facturarPrestacionSinturno(pool) {
         let prestaciones: any = await andesService.getPrestacionesSinTurno('2091000013100');
         for (let index = 0; index < prestaciones.length; index++) {
             let prestacion = prestaciones[index];
@@ -92,6 +93,7 @@ export async function ejecutar() {
             // compruebo que este en afiliados
             let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, prestacion.paciente.documento);
             if (afiliadoSumar) {
+                console.log("------------------",index)
                 // mapeo con el efector
                 let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(prestacion.createdBy.organizacion._id);
                 // creacion del json para el comprobante
@@ -109,8 +111,10 @@ export async function ejecutar() {
                 // Valor de codigoProfesional por defecto es P99
                 let codigoProfesional = 'P99';
                 let codigo = crearCodigoComp(comprobante, prestacion.createdAt, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
-                // let unaPrestacion = await creaPrestaciones(datosPrestacion, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
-                // let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
+                 let unaPrestacion = await creaPrestaciones(prestacion.createdAt, idComprobante, codigo, pacienteSips, nomencladorSips, prestacion.createdAt);
+                 console.log(unaPrestacion);
+                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
+                 console.log("prestacionCreadawacho",idPrestacion)
             }
         }
     }
@@ -155,10 +159,10 @@ export async function ejecutar() {
             sexo: (pacienteSips.idSexo === 3 ? 'M' : pacienteSips.idSexo === 2 ? 'F' : 1),
             edad: moment(datosAgenda.fecha).diff(pacienteSips.fechaNacimiento, 'years'),
             // fechaPrestacion: moment(fechaPrestacion).format('YYYY-MM-DD'),
-            fechaPrestacion: new Date(datosPrestacion.turno.horaInicio),
-            anio: moment(datosPrestacion.turno.horaInicio).format('YYYY'),
-            mes: moment(datosPrestacion.turno.horaInicio).format('MM'),
-            dia: moment(datosPrestacion.turno.horaInicio).format('DD'),
+            fechaPrestacion: new Date(datosPrestacion),
+            anio: moment(datosPrestacion).format('YYYY'),
+            mes: moment(datosPrestacion).format('MM'),
+            dia: moment(datosPrestacion).format('DD'),
             // fechaNacimiento: moment(datosPaciente.fechaNacimiento).format('YYYY-MM-DD'),
             fechaNacimiento: new Date(pacienteSips.fechaNacimiento),
             precio_prestacion: nomencladorSips.precio,
