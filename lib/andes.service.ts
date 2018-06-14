@@ -57,3 +57,11 @@ export async function getConfiguracionPrestacion(conceptId) {
 export async function getPrestacionesSinTurno(conceptId) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/sinTurno/' + conceptId);
 }
+
+export async function getPrestacionesConTurno(id) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/prestacionesConTurno/' + id);
+}
+
+export async function cambioEstadoPrestacion(id) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
+}

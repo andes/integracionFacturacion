@@ -34,14 +34,14 @@ export async function ejecutar() {
 
         if (pacienteAplicaSUMAR(turnoFacturacion.turno.paciente)) {
             datosSumar.push(turnoFacturacion);
-        }  else {
+        } else {
             datosRecupero.push(turnoFacturacion);
         }
 
         await facturarSumar(datosSumar);
-        await facturarRecupero(datosRecupero);
+        // await facturarRecupero(datosRecupero);
     }
-    //  await facturarPrestacionSinturno(pool);
+    //   await facturarPrestacionSinturno(pool);
     sql.close();
 
     function pacienteAplicaSUMAR(paciente) {
@@ -51,17 +51,18 @@ export async function ejecutar() {
     }
 
     async function facturarSumar(datosPrestaciones: any) {
+        console.log("entro sumar", datosPrestaciones)
         let datosPrestacion;
         for (let i = 0; i < datosPrestaciones.length; i++) {
             datosPrestacion = datosPrestaciones[i];
             let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, datosPrestacion.turno.paciente.documento);
-     
+
             if (afiliadoSumar) {
                 let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
                 let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados);
                 let pacienteSips = await sipsService.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
                 let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
-                 let nomenclador: any = await andesService.getConfiguracionPrestacion(datosPrestacion.turno.tipoPrestacion.conceptId);
+                let nomenclador: any = await andesService.getConfiguracionPrestacion(datosPrestacion.turno.tipoPrestacion.conceptId);
                 let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, nomenclador.nomencladorSUMAR.id);
 
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
@@ -69,23 +70,27 @@ export async function ejecutar() {
                 // Valor de codigoProfesional por defecto es P99
                 let codigoProfesional = 'P99';
 
+                console.log("aca diagnostico", await diagnosticos(datosPrestacion.turno.tipoPrestacion.conceptId, datosPrestacion.turno._id))
+
+
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
                 let prestacion = await creaPrestaciones(datosPrestacion.turno.horaInicio, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, prestacion);
 
                 if (idPrestacion) {
                     let idTurno = datosPrestacion.turno._id
-                    cambioEstadoTurno(idTurno)
+                    // cambioEstadoTurno(idTurno)
                 }
             }
         }
     }
 
     async function facturarPrestacionSinturno(pool) {
+        console.log("entre")
         let prestaciones: any = await andesService.getPrestacionesSinTurno('2091000013100');
         for (let index = 0; index < prestaciones.length; index++) {
             let prestacion = prestaciones[index];
-
+            console.log(prestacion)
             // compruebo que este en afiliados
             let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, prestacion.paciente.documento);
             if (afiliadoSumar) {
@@ -96,6 +101,7 @@ export async function ejecutar() {
                 // insert del comprobante y devuelve id
                 let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
                 // mapeo paciente
+                console.log("idComprobante", idComprobante)
                 let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, prestacion.paciente.documento);
                 // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
                 let nomenclador: any = await andesService.getConfiguracionPrestacion('2091000013100');
@@ -106,8 +112,14 @@ export async function ejecutar() {
                 // Valor de codigoProfesional por defecto es P99
                 let codigoProfesional = 'P99';
                 let codigo = crearCodigoComp(comprobante, prestacion.createdAt, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
-                 let unaPrestacion = await creaPrestaciones(prestacion.createdAt, idComprobante, codigo, pacienteSips, nomencladorSips, prestacion.createdAt);
-                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
+                let unaPrestacion = await creaPrestaciones(prestacion.createdAt, idComprobante, codigo, pacienteSips, nomencladorSips, prestacion.createdAt);
+                let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
+                console.log('idPrestacion', idPrestacion);
+
+                if (idPrestacion) {
+                    andesService.cambioEstadoPrestacion(prestacion._id)
+                    console.log("cambio")
+                }
             }
         }
     }
@@ -168,6 +180,34 @@ export async function ejecutar() {
 
     function cambioEstadoTurno(id) {
         andesServiceSUMAR.cambioEstado(id);
+    }
+
+    async function diagnosticos(conceptId, id) {
+        let confPrestaciones: any = await andesService.getConfiguracionPrestacion(conceptId);
+        let prestacionDelTurno: any = await andesService.getPrestacionesConTurno(id)
+        let datosSumar = confPrestaciones.nomencladorSUMAR.diagnostico;
+        let resultado = 'A97';
+        let presente = false;
+        prestacionDelTurno = prestacionDelTurno[0].ejecucion.registros
+        for (var i = 0; i < datosSumar.length; i++) {
+            if (!presente){
+                var element = datosSumar[i];
+                for (var n = 0; n < prestacionDelTurno.length; n++) {
+                    if (element.conceptId === prestacionDelTurno[n].valor.id) {
+                        if (element.diagnostico === 'H87') {
+                            console.log("ppresente")
+                            resultado = element.diagnostico;
+                            let presente = true;
+                        }
+                        
+                    }
+                }
+
+            }
+        }
+
+        return resultado;
+
     }
 
     // async function prestacionesSinTurno(conceptId) {
