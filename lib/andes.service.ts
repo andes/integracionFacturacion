@@ -38,6 +38,41 @@ function doGet(path) {
     });
 }
 
+function doPost(path) {
+    return new Promise((resolve: any, reject: any) => {
+        let options = {
+            method: "POST",
+            host: ConfigPrivate.StaticConfiguration.andesApi.ip,
+            port: ConfigPrivate.StaticConfiguration.andesApi.port,
+            Authentication: ConfigPrivate.StaticConfiguration.secret.token,
+            path: path,
+            headers: {
+                'Authorization': ConfigPrivate.StaticConfiguration.secret.token,
+                'Content-Type': 'application/json'
+            }
+        }
+
+        let result: any;
+
+        let req = http.request(options, function (res) {
+            let total = '';
+            res.on('data', function (body) {
+                total += body
+            });
+
+            res.on('end', function () {
+                resolve(JSON.parse(total));
+            });
+        });
+
+        req.on('error', function (e) {
+            reject(e.message);
+        });
+
+        req.end();
+    });
+}
+
 export async function getTurnosFacturacionPendiente() {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/facturacion/turnos');
 }
@@ -63,5 +98,5 @@ export async function getPrestacionesConTurno(id) {
 }
 
 export async function cambioEstadoPrestacion(id) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
+    return await doPost(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
 }

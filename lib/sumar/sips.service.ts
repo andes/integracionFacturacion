@@ -117,3 +117,17 @@ export async function insertPrestaciones(pool, prestacion) {
 
     pool.close();
 }
+
+
+export  async function insertDatosReportables(pool,datos) {
+
+    let query = 'INSERT INTO [dbo].[PN_Rel_PrestacionXDatoReportable] ([idPrestacion],[idDatoReportable],[valor]) VALUES (@idPrestacion ,@idDatoReportable ,@valor)';
+    let resultado = await  new sql.Request(pool)
+        .input('idPrestacion', sql.Int, datos.idPrestacion)
+        .input('idDatoReportable', sql.Int, datos.idDatoReportable)
+        .input('valor', sql.VarChar(30), datos.valor)
+        .query(query);
+console.log(resultado)
+    // return resultado.recordset[0] ? resultado.recordset[0] : null;
+
+}
