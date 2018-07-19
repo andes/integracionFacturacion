@@ -81,7 +81,8 @@ export async function ejecutar() {
                 let prestacion = await creaPrestaciones(datosPrestacion.turno.horaInicio, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda, codigoPatologia);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, prestacion);
                 console.log('id prestacion:', idPrestacion)
-
+                
+                console.log(andesService.busquedaHuds('586e6e8c27d3107fde1389de','5b0450d1205ea22106835a1d','<<27113001')) //hardcodeado para pobrobar
                 // await datosReportablesOto(configPrestaciones, datosPrestacion.turno._id, 'conTurno', null, idPrestacion)
                 // if (idPrestacion) {
                 //     let idTurno = datosPrestacion.turno._id

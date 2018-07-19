@@ -97,6 +97,10 @@ export async function getPrestacionesConTurno(id) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/prestacionesConTurno/' + id);
 }
 
+export async function busquedaHuds(id,idPrestacion,expresion) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.rup + '/prestaciones/huds/' + id + '?idPrestacion='+idPrestacion+'&conceptIds='+expresion+'');
+}
+
 export async function cambioEstadoPrestacion(id) {
     return await doPost(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
 }
