@@ -31,9 +31,7 @@ export async function ejecutar() {
     console.log('iniciando..Cantidad de turnos: ', turnosFacturacion.length)
     for (let i = 0; i < turnosFacturacion.length; i++) {
         turnoFacturacion = turnosFacturacion[i];
-        console.log(turnoFacturacion.turno.paciente)
         if (pacienteAplicaSUMAR(turnoFacturacion.turno.paciente)) {
-            console.log("hola wacho")
             datosSumar.push(turnoFacturacion);
         } else {
             datosRecupero.push(turnoFacturacion);
@@ -41,9 +39,9 @@ export async function ejecutar() {
 
 
     }
-    await facturarSumar(datosSumar);
-    // await facturarRecupero(datosRecupero);
-    // await facturarPrestacionSinturno(pool);
+   // await facturarSumar(datosSumar);
+    //  await facturarRecupero(datosRecupero);
+      await facturarPrestacionSinturno(pool);
     sql.close();
 
     function pacienteAplicaSUMAR(paciente) {
@@ -67,23 +65,31 @@ export async function ejecutar() {
                 let pacienteSips = await sipsService.mapeoPaciente(pool, datosPrestacion.turno.paciente.documento);
                 let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
                 let nomenclador: any = await andesService.getConfiguracionPrestacion(datosPrestacion.turno.tipoPrestacion.conceptId);
-                let configPrestaciones = await matchConceptId(datosPrestacion.turno._id);
+                let configPrestaciones = await matchConceptId(datosPrestacion.turno._id,'conTurno',null);
                 let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, configPrestaciones.nomencladorSUMAR.id);
                 console.log('id comprobante', idComprobante);
-             
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
                 let codigoPatologia = await diagnosticos(configPrestaciones, datosPrestacion.turno._id, 'conTurno', null);
                 // Valor de codigoProfesional por defecto es P99
                 let codigoProfesional = 'P99';
-
-
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
                 let prestacion = await creaPrestaciones(datosPrestacion.turno.horaInicio, idComprobante, codigo, pacienteSips, nomencladorSips, datosPrestacion.datosAgenda, codigoPatologia);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, prestacion);
                 console.log('id prestacion:', idPrestacion)
-                
-                console.log(andesService.busquedaHuds('586e6e8c27d3107fde1389de','5b0450d1205ea22106835a1d','<<27113001')) //hardcodeado para pobrobar
-                // await datosReportablesOto(configPrestaciones, datosPrestacion.turno._id, 'conTurno', null, idPrestacion)
+                let prestConTurno: any = await andesService.getPrestacionesConTurno(datosPrestacion.turno._id)
+                let datosReportables
+                if(datosPrestacion.turno.tipoPrestacion.conceptId === "2091000013100"){
+                     datosReportables = await datosReportablesOto(configPrestaciones, datosPrestacion.turno._id, 'conTurno', null, idPrestacion)
+                }else{
+                 datosReportables = await datosReportablesGeneral(configPrestaciones, datosPrestacion.turno.paciente.id, idPrestacion, prestConTurno[0].id)
+                }
+                // // console.log(arrayDatosReportables);
+                for (let index = 0; index < datosReportables.length; index++) {
+                    const element = datosReportables[index];
+                    await sipsServiceSUMAR.insertDatosReportables(pool, element);
+
+                }
+
                 // if (idPrestacion) {
                 //     let idTurno = datosPrestacion.turno._id
                 //     cambioEstadoTurno(idTurno)
@@ -95,8 +101,9 @@ export async function ejecutar() {
     }
 
     async function facturarPrestacionSinturno(pool) {
-
-        let prestaciones: any = await andesService.getPrestacionesSinTurno('2091000013100');
+        console.log("prestaciones sin turno")
+        let prestaciones: any = await andesService.getPrestacionesSinTurno();
+        console.log("prestaciones", prestaciones)
         for (let index = 0; index < prestaciones.length; index++) {
             let prestacion = prestaciones[index];
 
@@ -117,10 +124,13 @@ export async function ejecutar() {
                 let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, prestacion.paciente.documento);
                 // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
                 let nomenclador: any = await andesService.getConfiguracionPrestacion(prestacion.solicitud.tipoPrestacion.conceptId);
-                let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, nomenclador.nomencladorSUMAR.id);
+                let configPrestaciones = await matchConceptId(null,"sinTurno",prestacion);
+                console.log("config",configPrestaciones);
+                let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, configPrestaciones.nomencladorSUMAR.id);
 
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
-                let codigoPatologia = await diagnosticos(prestacion.solicitud.tipoPrestacion.conceptId, null, 'sinTurno', prestacion);
+
+                let codigoPatologia = await diagnosticos(configPrestaciones, null, 'sinTurno', prestacion);
                 console.log('diagnostico', codigoPatologia)
                 // Valor de codigoProfesional por defecto es P99
                 //diagnosticos(prestacion.turno.tipoPrestacion.conceptId, prestacion.turno._id) 
@@ -129,7 +139,21 @@ export async function ejecutar() {
                 let unaPrestacion = await creaPrestaciones(prestacion.createdAt, idComprobante, codigo, pacienteSips, nomencladorSips, prestacion.createdAt, codigoPatologia);
                 let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
                 console.log('idPrestacion', idPrestacion);
-                await datosReportablesOto(prestacion.solicitud.tipoPrestacion.conceptId, null, 'sinTurno', prestacion, idPrestacion)
+
+                let datosReportables
+                if(prestacion.solicitud.tipoPrestacion.conceptId === "2091000013100"){
+                     datosReportables = await datosReportablesOto(configPrestaciones, null, 'sinTurno', prestacion, idPrestacion)
+                }else{
+                    let prest = [prestacion]
+                 datosReportables = await datosReportablesGeneral(configPrestaciones, prestacion.paciente.id, idPrestacion , prestacion._id)
+                }
+
+                for (let index = 0; index < datosReportables.length; index++) {
+                    const element = datosReportables[index];
+                    await sipsServiceSUMAR.insertDatosReportables(pool, element);
+
+                }
+                
                 if (idPrestacion) {
                     await andesService.cambioEstadoPrestacion(prestacion._id)
                 }
@@ -139,11 +163,57 @@ export async function ejecutar() {
         }
     }
 
-    async function matchConceptId(id) {
+    async function datosReportablesGeneral(configPrestaciones, idPaciente, idPrestacion, prestConTurno) {
+        console.log(prestConTurno)
+        console.log(idPaciente)
+        let arrayDatosReportables = []
+        let sePuedeReportar = true;
+        let busqueda
+        for (let index = 0; index < configPrestaciones.nomencladorSUMAR.datosReportables.length; index++) {
+            if (sePuedeReportar) {
+                const element = configPrestaciones.nomencladorSUMAR.datosReportables[index];
+                console.log(prestConTurno[0].id,)
+                busqueda = await andesService.busquedaHuds(idPaciente, prestConTurno, element.expresion)
+                console.log(busqueda)
+                if (busqueda.length === 0) {
+                    sePuedeReportar = false;
+                }
+            }
+        }
+
+        let registrosBusqueda = busqueda[0].registro.registros;
+        let datosR = configPrestaciones.nomencladorSUMAR.datosReportables;
+        datosR.forEach(unDatoReportable => {
+            unDatoReportable.valores.forEach(unValor => {
+                let reg
+                let objDatoReportable;
+                reg = registrosBusqueda.find(reg => reg.concepto.conceptId === unValor.conceptId)
+
+
+                console.log("acaaaaaaa", reg)
+                objDatoReportable = {
+                    idDatoReportable: unDatoReportable.idDatosReportables,
+                    idPrestacion: idPrestacion,
+                    valor: reg.valor
+                };
+
+                arrayDatosReportables.push(objDatoReportable);
+            });
+        })
+
+        return arrayDatosReportables
+    }
+
+    async function matchConceptId(id,condicion,prestacionEntrante) {
         console.log("FUNCIONNNNNNNNNN")
 
         let match;
-        let prestacion: any =  await andesService.getPrestacionesConTurno(id)
+        let prestacion: any 
+        if(condicion === "conTurno"){
+            prestacion = await andesService.getPrestacionesConTurno(id)
+        }else{
+            prestacion = [prestacionEntrante]
+        }
         let arrayConceptos = [];
         arrayConceptos.push(prestacion[0].solicitud.tipoPrestacion.conceptId)
         let registros = prestacion[0].ejecucion.registros;
@@ -160,14 +230,15 @@ export async function ejecutar() {
             const unConceptoId = arrayConceptos[index];
 
             let confPrestaciones: any = await andesService.getConfiguracionPrestacion(unConceptoId);
-            if(confPrestaciones){
+            if (confPrestaciones) {
                 match = confPrestaciones;
             }
 
-      
+
         }
+        console.log("match",match)
         return match
-    
+
     }
 
     function crearComprobante(efector, clavebeneficiario, idAfiliado) {
@@ -223,6 +294,7 @@ export async function ejecutar() {
     }
 
     function cambioEstadoTurno(id) {
+        console.log("entre")
         andesServiceSUMAR.cambioEstado(id);
     }
 
@@ -268,55 +340,6 @@ export async function ejecutar() {
         return resultado;
 
     }
-    // async function datosReportablesOto(conceptId, id, condicion, prestacionSinTurno, idPrestacion) {
-    //     let confPrestaciones: any = await andesService.getConfiguracionPrestacion(conceptId);
-    //     let prestacionDelTurno: any
-    //     let valorConcat: string = '';
-    //     if (condicion === 'conTurno') {
-    //         prestacionDelTurno = await andesService.getPrestacionesConTurno(id);
-    //     } else {
-    //         prestacionDelTurno = [prestacionSinTurno];
-    //     }
-    //     let datosSumar = confPrestaciones.nomencladorSUMAR.datosReportables;
-    //     console.log(datosSumar);
-    //     let resultado = {
-    //         idDatoReportable: null,
-    //         idPrestacion: idPrestacion,
-    //         valor: null
-    //     };
-    //     prestacionDelTurno = prestacionDelTurno[0].ejecucion.registros
-    //     for (var i = 0; i < datosSumar.length; i++) {
-
-    //         var sumar = datosSumar[i];
-    //         resultado.idDatoReportable = sumar.idDatosReportables;
-    //         //recorro los registros
-    //         for (var n = 0; n < prestacionDelTurno.length; n++) {
-    //             //recorro los valores de cada registro
-    //             for (var j = 0; j < sumar.valores.length; j++) {
-    //                 let valores = sumar.valores[j]
-    //                 console.log(valores)
-    //                 //verifico si hay algun conceptid en la bd que haga match con los datos de la prestacion
-    //                 if (valores.conceptId === prestacionDelTurno[n].valor.id) {
-    //                     for (var o = 0; o < sumar.valores.length; o++) {
-    //                         let oidos = sumar.valores[o];
-    //                         //verifico nuevamente para armar la estructura del del valor del dato reportable
-    //                         if (prestacionDelTurno[n].concepto.conceptId === oidos.conceptId) {
-    //                             console.log(oidos.valor + "" + valores.valor + "/")
-    //                             valorConcat += oidos.valor + "" + valores.valor + "/"
-    //                         }
-
-
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     resultado.valor = valorConcat.slice(0, -1);
-    //     console.log(resultado)
-    //     await sipsServiceSUMAR.insertDatosReportables(pool, resultado);
-    // }
-
-
     async function datosReportablesOto(confPrestaciones, id, condicion, prestacionSinTurno, idPrestacion) {
         let prestacionDelTurno: any
         let valorConcat: string = '';
@@ -332,37 +355,86 @@ export async function ejecutar() {
             idPrestacion: idPrestacion,
             valor: null
         };
-        // prestacionDelTurno = prestacionDelTurno[0].ejecucion.registros
-        // for (var i = 0; i < datosSumar.length; i++) {
+        prestacionDelTurno = prestacionDelTurno[0].ejecucion.registros
+        for (var i = 0; i < datosSumar.length; i++) {
 
-        //     var sumar = datosSumar[i];
-        //     resultado.idDatoReportable = sumar.idDatosReportables;
-        //     //recorro los registros
-        //     for (var n = 0; n < prestacionDelTurno.length; n++) {
-        //         //recorro los valores de cada registro
-        //         for (var j = 0; j < sumar.valores.length; j++) {
-        //             let valores = sumar.valores[j]
-        //             console.log(valores)
-        //             //verifico si hay algun conceptid en la bd que haga match con los datos de la prestacion
-        //             if (valores.conceptId === prestacionDelTurno[n].valor.id) {
-        //                 for (var o = 0; o < sumar.valores.length; o++) {
-        //                     let oidos = sumar.valores[o];
-        //                     //verifico nuevamente para armar la estructura del del valor del dato reportable
-        //                     if (prestacionDelTurno[n].concepto.conceptId === oidos.conceptId) {
-        //                         console.log(oidos.valor + "" + valores.valor + "/")
-        //                         valorConcat += oidos.valor + "" + valores.valor + "/"
-        //                     }
+            var sumar = datosSumar[i];
+            resultado.idDatoReportable = sumar.idDatosReportables;
+            //recorro los registros
+            for (var n = 0; n < prestacionDelTurno.length; n++) {
+                //recorro los valores de cada registro
+                for (var j = 0; j < sumar.valores.length; j++) {
+                    let valores = sumar.valores[j]
+                    console.log(valores)
+                    //verifico si hay algun conceptid en la bd que haga match con los datos de la prestacion
+                    if (valores.conceptId === prestacionDelTurno[n].valor.id) {
+                        for (var o = 0; o < sumar.valores.length; o++) {
+                            let oidos = sumar.valores[o];
+                            //verifico nuevamente para armar la estructura del del valor del dato reportable
+                            if (prestacionDelTurno[n].concepto.conceptId === oidos.conceptId) {
+                                console.log(oidos.valor + "" + valores.valor + "/")
+                                valorConcat += oidos.valor + "" + valores.valor + "/"
+                            }
 
 
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        // resultado.valor = valorConcat.slice(0, -1);
-        // console.log(resultado)
+                        }
+                    }
+                }
+            }
+        }
+        resultado.valor = valorConcat.slice(0, -1);
+        console.log(resultado)
+        return [resultado];
         // await sipsServiceSUMAR.insertDatosReportables(pool, resultado);
     }
+
+
+    // async function datosReportablesOto(confPrestaciones, id, condicion, prestacionSinTurno, idPrestacion) {
+    //     let prestacionDelTurno: any
+    //     let valorConcat: string = '';
+    //     if (condicion === 'conTurno') {
+    //         prestacionDelTurno = await andesService.getPrestacionesConTurno(id);
+    //     } else {
+    //         prestacionDelTurno = [prestacionSinTurno];
+    //     }
+    //     let datosSumar = confPrestaciones.nomencladorSUMAR.datosReportables;
+    //     console.log(datosSumar);
+    //     let resultado = {
+    //         idDatoReportable: null,
+    //         idPrestacion: idPrestacion,
+    //         valor: null
+    //     };
+    //     // prestacionDelTurno = prestacionDelTurno[0].ejecucion.registros
+    //     // for (var i = 0; i < datosSumar.length; i++) {
+
+    //     //     var sumar = datosSumar[i];
+    //     //     resultado.idDatoReportable = sumar.idDatosReportables;
+    //     //     //recorro los registros
+    //     //     for (var n = 0; n < prestacionDelTurno.length; n++) {
+    //     //         //recorro los valores de cada registro
+    //     //         for (var j = 0; j < sumar.valores.length; j++) {
+    //     //             let valores = sumar.valores[j]
+    //     //             console.log(valores)
+    //     //             //verifico si hay algun conceptid en la bd que haga match con los datos de la prestacion
+    //     //             if (valores.conceptId === prestacionDelTurno[n].valor.id) {
+    //     //                 for (var o = 0; o < sumar.valores.length; o++) {
+    //     //                     let oidos = sumar.valores[o];
+    //     //                     //verifico nuevamente para armar la estructura del del valor del dato reportable
+    //     //                     if (prestacionDelTurno[n].concepto.conceptId === oidos.conceptId) {
+    //     //                         console.log(oidos.valor + "" + valores.valor + "/")
+    //     //                         valorConcat += oidos.valor + "" + valores.valor + "/"
+    //     //                     }
+
+
+    //     //                 }
+    //     //             }
+    //     //         }
+    //     //     }
+    //     // }
+    //     // resultado.valor = valorConcat.slice(0, -1);
+    //     // console.log(resultado)
+    //     // await sipsServiceSUMAR.insertDatosReportables(pool, resultado);
+    // }
 
 
     async function prestacionesSinTurno(conceptId) {
@@ -375,7 +447,8 @@ export async function ejecutar() {
             datosPrestacion = datosPrestaciones[i];
             console.log('----- recupero ------')
             let orden = ordenFactory();
-            let configuracionPrestacion: any = await andesService.getConfiguracionPrestacion(datosPrestacion.turno.tipoPrestacion.conceptId);
+            
+            let configuracionPrestacion: any = await matchConceptId(datosPrestacion.turno._id,'conTurno',null);
             let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(datosPrestacion.datosAgenda.organizacion._id);
             let efector = await sipsService.mapeoEfector(pool, codigoEfectorCUIE);
             let idServicio = await sipsService.mapeoServicio(pool, configuracionPrestacion.idServicio); // PARAMETRO HARDCODEADO ???????
@@ -400,6 +473,7 @@ export async function ejecutar() {
             let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01';
             let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, datosPrestacion.turno.horaInicio);
             let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
+            console.log("asdasdas",nomenclador)
             let rfTipoPractica = nomenclador.idTipoPractica;
 
             crearOrden(orden, datosPrestacion.turno.horaInicio, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion);
@@ -408,8 +482,7 @@ export async function ejecutar() {
             let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
             await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
             if (orden.idOrden) {
-
-                cambioEstadoTurno(datosPrestacion.turno._id);
+                // cambioEstadoTurno(datosPrestacion.turno._id);
             }
             console.log('----- fin recupero ------')
         }
