@@ -101,6 +101,10 @@ export async function busquedaHuds(id,idPrestacion,expresion) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.rup + '/prestaciones/huds/' + id + '?idPrestacion='+idPrestacion+'&expresion='+expresion+'');
 }
 
+export async function getObraSocial(documento) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.module + '/fuentesAutenticas/puco/' + documento);
+}
+
 export async function cambioEstadoPrestacion(id) {
-    return await doPost(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
 }
