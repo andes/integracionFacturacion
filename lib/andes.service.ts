@@ -106,5 +106,5 @@ export async function getObraSocial(documento) {
 }
 
 export async function cambioEstadoPrestacion(id) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
+    return await doPost(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
 }
