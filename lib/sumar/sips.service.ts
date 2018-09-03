@@ -14,9 +14,9 @@ export async function mapeoPaciente(pool, dni) {
 }
 
 export async function saveComprobanteSumar(pool, datosComprobante) {
-    let query = 'INSERT INTO dbo.PN_comprobante (cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion) ' +
-        ' values (@cuie, NULL, NULL, @fechaComprobante, @claveBeneficiario, @idAfiliado, @fechaCarga, @comentario, @marca, @periodo, @activo, @idTipoPrestacion)' +
-    ' SELECT SCOPE_IDENTITY() AS id';
+    let query = 'INSERT INTO dbo.PN_comprobante (cuie, id_factura, nombre_medico, fecha_comprobante, clavebeneficiario, id_smiafiliados, fecha_carga, comentario, marca, periodo, activo, idTipoDePrestacion,objectId,factAutomatico) ' +
+        ' values (@cuie, NULL, NULL, @fechaComprobante, @claveBeneficiario, @idAfiliado, @fechaCarga, @comentario, @marca, @periodo, @activo, @idTipoPrestacion, @objectId, @factAutomatico)' +
+        ' SELECT SCOPE_IDENTITY() AS id';
 
     let result = await new sql.Request(pool)
         .input('cuie', sql.VarChar(10), datosComprobante.cuie)
@@ -29,6 +29,8 @@ export async function saveComprobanteSumar(pool, datosComprobante) {
         .input('periodo', sql.VarChar(7), datosComprobante.periodo)
         .input('activo', sql.VarChar(1), datosComprobante.activo)
         .input('idTipoPrestacion', sql.Int, datosComprobante.idTipoPrestacion)
+        .input('objectId', sql.VarChar(50), datosComprobante.objectId)
+        .input('factAutomatico', sql.VarChar(50), 'prestacion')
         .query(query);
 
     return result && result.recordset ? result.recordset[0].id : null;
@@ -119,15 +121,15 @@ export async function insertPrestaciones(pool, prestacion) {
 }
 
 
-export  async function insertDatosReportables(pool,datos) {
-
+export async function insertDatosReportables(pool, datos) {
+    console.log(datos)
     let query = 'INSERT INTO [dbo].[PN_Rel_PrestacionXDatoReportable] ([idPrestacion],[idDatoReportable],[valor]) VALUES (@idPrestacion ,@idDatoReportable ,@valor)';
-    let resultado = await  new sql.Request(pool)
+    let resultado = await new sql.Request(pool)
         .input('idPrestacion', sql.Int, datos.idPrestacion)
         .input('idDatoReportable', sql.Int, datos.idDatoReportable)
         .input('valor', sql.VarChar(30), datos.valor)
         .query(query);
-console.log(resultado)
+    console.log(resultado)
     // return resultado.recordset[0] ? resultado.recordset[0] : null;
 
 }

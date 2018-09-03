@@ -98,7 +98,7 @@ export async function getPrestacionesConTurno(id) {
 }
 
 export async function busquedaHuds(id,idPrestacion,expresion) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.rup + '/prestaciones/huds/' + id + '?idPrestacion='+idPrestacion+'&expresion='+expresion+'');
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.rup + '/prestaciones/facturacion/' + id + '?idPrestacion='+idPrestacion+'&expresion='+expresion+'');
 }
 
 export async function getObraSocial(documento) {
