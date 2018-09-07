@@ -33,7 +33,6 @@ export async function ejecutar() {
         turnoFacturacion = turnosFacturacion[i];
         if (await pacienteAplicaSUMAR(turnoFacturacion.turno.paciente)) {
             let prestacion: any = await andesService.getPrestacionesConTurno(turnoFacturacion.turno._id);
-            console.log(prestacion[0].estados.length - 1)
             let longitud = prestacion[0].estados.length - 1
             if (prestacion && prestacion[0].estados[longitud].tipo === 'validada') {
                 datosSumar.push(turnoFacturacion);
@@ -56,7 +55,6 @@ export async function ejecutar() {
         //     && turnoFacturacion.turno.paciente.obraSocial.codigo === '499'  // CODIGO DE OBRA SOCIAL 'SUMAR'
         // );
        let obraSocialPuco:any =  await andesService.getObraSocial(paciente.documento)
-       console.log(obraSocialPuco)
         if (obraSocialPuco.codigo === '499') {
             return true;
         }
@@ -142,13 +140,11 @@ export async function ejecutar() {
                 // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
                 let nomenclador: any = await andesService.getConfiguracionPrestacion(prestacion.solicitud.tipoPrestacion.conceptId);
                 let configPrestaciones = await matchConceptId(null, "sinTurno", prestacion);
-                console.log("config", configPrestaciones);
                 let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, configPrestaciones.nomencladorSUMAR.id);
 
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
 
                 let codigoPatologia = await diagnosticos(configPrestaciones, null, 'sinTurno', prestacion);
-                console.log('diagnostico', codigoPatologia)
                 // Valor de codigoProfesional por defecto es P99
                 //diagnosticos(prestacion.turno.tipoPrestacion.conceptId, prestacion.turno._id) 
                 let codigoProfesional = 'P99';
@@ -504,7 +500,6 @@ export async function ejecutar() {
                 let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01';
                 let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, prestacion.ejecucion.fecha);
                 let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
-                console.log("asdasdas", nomenclador)
                 let rfTipoPractica = nomenclador.idTipoPractica;
 
                 crearOrden(orden, prestacion.ejecucion.fecha, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, prestacion._id,'prestacion');
