@@ -89,8 +89,8 @@ export async function getConfiguracionPrestacion(conceptId) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/configuracionPrestacion/' + conceptId);
 }
 
-export async function getPrestacionesSinTurno(conceptId) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/sinTurno/' + conceptId);
+export async function getPrestacionesSinTurno() {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/sinTurno');
 }
 
 export async function getPrestacionesConTurno(id) {
@@ -98,7 +98,11 @@ export async function getPrestacionesConTurno(id) {
 }
 
 export async function busquedaHuds(id,idPrestacion,expresion) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.rup + '/prestaciones/huds/' + id + '?idPrestacion='+idPrestacion+'&conceptIds='+expresion+'');
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.rup + '/prestaciones/facturacion/' + id + '?idPrestacion='+idPrestacion+'&expresion='+expresion+'');
+}
+
+export async function getObraSocial(documento) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.module + '/fuentesAutenticas/puco/' + documento);
 }
 
 export async function cambioEstadoPrestacion(id) {

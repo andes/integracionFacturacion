@@ -51,7 +51,9 @@ export async function guardarOrden(pool, orden) {
                     ' ,[numeroSiniestro]' +
                     ' ,[fechaSiniestro]' +
                     ' ,[facturaFueraConvenio] ' +
-                    ' ,[esInternacion])' +
+                    ' ,[esInternacion]' +
+                    ' ,[objectId] ' +
+                    ' ,[factAutomatico])' +
                 ' VALUES' +
                     ' (@idEfector' +
                     ' ,@numero' +
@@ -76,7 +78,9 @@ export async function guardarOrden(pool, orden) {
                     ' ,@numeroSiniestro' +
                     ' ,@fechaSiniestro' +
                     ' ,@facturaFueraConvenio ' +
-                    ' ,@esInternacion) ' +
+                    ' ,@esInternacion ' +
+                    ' ,@objectId ' +
+                    ' ,@factAutomatico) ' +
                 'DECLARE @numeroOrden Int =  SCOPE_IDENTITY() ' +
                 'UPDATE FAC_Orden SET numero = @numeroOrden WHERE idOrden = @numeroOrden ' +
                 'SELECT @numeroOrden as ID';
@@ -106,6 +110,8 @@ export async function guardarOrden(pool, orden) {
         .input('fechaSiniestro', sql.DateTime, new Date(orden.fechaSiniestro))
         .input('facturaFueraConvenio', sql.Bit, orden.facturaFueraConvenio)
         .input('esInternacion', sql.Bit, orden.esInternacion)
+        .input('objectId',sql.VarChar(50), orden.objectId)
+        .input('factAutomatico', sql.VarChar(50), orden.factAutomatico)
         .query(query);
 
         return result.recordset[0] ? result.recordset[0].ID : null;
