@@ -105,6 +105,10 @@ export async function getObraSocial(documento) {
     return await doGet(ConfigPrivate.StaticConfiguration.URL.module + '/fuentesAutenticas/puco/' + documento);
 }
 
+export async function getObraSocialPuco(documento) {
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.module + '/fuentesAutenticas/puco/' + documento);
+}
+
 export async function cambioEstadoPrestacion(id) {
     return await doPost(ConfigPrivate.StaticConfiguration.URL.facturacionAutomatica + '/cambioEstadoPrestaciones/' + id);
 }

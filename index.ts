@@ -83,7 +83,7 @@ export async function ejecutar() {
                 let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, configPrestaciones.nomencladorSUMAR.id);
                 console.log('id comprobante', idComprobante);
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
-                let codigoPatologia = await diagnosticos(configPrestaciones, datosPrestacion.turno._id, 'conTurno', null);
+                let codigoPatologia = 'A97';
                 // Valor de codigoProfesional por defecto es P99
                 let codigoProfesional = 'P99';
                 let codigo = crearCodigoComp(comprobante, datosPrestacion.datosAgenda, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
@@ -144,7 +144,7 @@ export async function ejecutar() {
 
                 // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
 
-                let codigoPatologia = await diagnosticos(configPrestaciones, null, 'sinTurno', prestacion);
+                let codigoPatologia = 'A97';
                 // Valor de codigoProfesional por defecto es P99
                 //diagnosticos(prestacion.turno.tipoPrestacion.conceptId, prestacion.turno._id) 
                 let codigoProfesional = 'P99';
@@ -479,6 +479,7 @@ export async function ejecutar() {
                 let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(prestacion.createdBy.organizacion._id);
                 let efector = await sipsService.mapeoEfector(pool, codigoEfectorCUIE);
                 let idServicio = await sipsService.mapeoServicio(pool, configuracionPrestacion.idServicio); // PARAMETRO HARDCODEADO ???????
+               console.log("    ideeeee",configuracionPrestacion.idServicio)
                 let idPacienteSips;
                 let pacienteSips = await sipsService.mapeoPaciente(pool, prestacion.paciente.documento);
 
