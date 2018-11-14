@@ -106,7 +106,7 @@ export async function getObraSocial(documento) {
 }
 
 export async function getObraSocialPuco(documento) {
-    return await doGet(ConfigPrivate.StaticConfiguration.URL.module + '/fuentesAutenticas/puco/' + documento);
+    return await doGet(ConfigPrivate.StaticConfiguration.URL.module + '/obraSocial/puco' + '?dni='+documento+'');
 }
 
 export async function cambioEstadoPrestacion(id) {

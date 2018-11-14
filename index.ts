@@ -31,6 +31,8 @@ export async function ejecutar() {
     console.log('iniciando..Cantidad de turnos: ', turnosFacturacion.length)
     for (let i = 0; i < turnosFacturacion.length; i++) {
         turnoFacturacion = turnosFacturacion[i];
+        // console.log(turnoFacturacion.turno.paciente)
+        // console.log("apli",await pacienteAplicaSUMAR(turnoFacturacion.turno.paciente))
         if (await pacienteAplicaSUMAR(turnoFacturacion.turno.paciente)) {
             let prestacion: any = await andesService.getPrestacionesConTurno(turnoFacturacion.turno._id);
             let longitud = prestacion[0].estados.length - 1
@@ -44,6 +46,8 @@ export async function ejecutar() {
 
 
     }
+
+
     await facturarSumar(datosSumar);
     await facturarPrestacionSinturnoSumar(pool);
     await facturarRecupero(datosRecupero);
@@ -51,11 +55,8 @@ export async function ejecutar() {
     sql.close();
 
     async function pacienteAplicaSUMAR(paciente) {
-        // return (turnoFacturacion.turno.paciente.obraSocial
-        //     && turnoFacturacion.turno.paciente.obraSocial.codigo === '499'  // CODIGO DE OBRA SOCIAL 'SUMAR'
-        // );
-       let obraSocialPuco:any =  await andesService.getObraSocial(paciente.documento)
-        if (obraSocialPuco.codigo === '499') {
+        if (paciente.obraSocial
+            && paciente.obraSocial.codigoFinanciador === 499) {
             return true;
         }
         return false;
@@ -66,7 +67,6 @@ export async function ejecutar() {
     async function facturarSumar(datosPrestaciones: any) {
 
         let datosPrestacion;
-        console.log("sumar", datosPrestaciones)
         for (let i = 0; i < datosPrestaciones.length; i++) {
             datosPrestacion = datosPrestaciones[i];
             let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, datosPrestacion.turno.paciente.documento);
@@ -116,65 +116,63 @@ export async function ejecutar() {
     async function facturarPrestacionSinturnoSumar(pool) {
         console.log("prestaciones sin turno")
         let prestaciones: any = await andesService.getPrestacionesSinTurno();
-        console.log("prestaciones", prestaciones)
         for (let index = 0; index < prestaciones.length; index++) {
             let prestacion = prestaciones[index];
-            // let obraSocialPuco: any = await andesService.getObraSocial(prestacion.paciente.documento)
-            console.log("holaaa")
+            // let obraSocialPuco: any = await andesService.getObraSocialPuco(prestacion.paciente.documento)
             // console.log(obraSocialPuco)
-            // if (obraSocialPuco.codigo === '499') {
-            // compruebo que este en afiliados
-            let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, prestacion.paciente.documento);
-            if (afiliadoSumar) {
-                console.log("------prestaciones sin turno-------")
-                // mapeo con el efector
-                let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(prestacion.createdBy.organizacion._id);
-                // creacion del json para el comprobante
-                let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados, prestacion._id);
-                // insert del comprobante y devuelve id
-                let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
-                // mapeo paciente
-                console.log("idComprobante", idComprobante)
+            if (prestacion.paciente.obraSocial && prestacion.paciente.obraSocial.codigoFinanciador === 499) {
+                // compruebo que este en afiliados
+                let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, prestacion.paciente.documento);
+                if (afiliadoSumar) {
+                    console.log("------prestaciones sin turno sumar-------")
+                    // mapeo con el efector
+                    let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(prestacion.createdBy.organizacion._id);
+                    // creacion del json para el comprobante
+                    let comprobante = crearComprobante(codigoEfectorCUIE, afiliadoSumar.clavebeneficiario, afiliadoSumar.id_smiafiliados, prestacion._id);
+                    // insert del comprobante y devuelve id
+                    let idComprobante = await sipsServiceSUMAR.saveComprobanteSumar(pool, comprobante);
+                    // mapeo paciente
+                    console.log("idComprobante", idComprobante)
 
-                let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, prestacion.paciente.documento);
-                // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
-                let nomenclador: any = await andesService.getConfiguracionPrestacion(prestacion.solicitud.tipoPrestacion.conceptId);
-                let configPrestaciones = await matchConceptId(null, "sinTurno", prestacion);
-                let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, configPrestaciones.nomencladorSUMAR.id);
+                    let pacienteSips = await sipsServiceSUMAR.mapeoPaciente(pool, prestacion.paciente.documento);
+                    // PARA TESTEO ENVIO CONCEPTID DE OTOEMISION
+                    let nomenclador: any = await andesService.getConfiguracionPrestacion(prestacion.solicitud.tipoPrestacion.conceptId);
+                    let configPrestaciones = await matchConceptId(null, "sinTurno", prestacion);
+                    let nomencladorSips = await sipsServiceSUMAR.mapeoNomenclador(pool, configPrestaciones.nomencladorSUMAR.id);
 
-                // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
+                    // Valor de codigoPatologia por defecto es A98 (Medicina preven/promoción salud)
 
-                let codigoPatologia = 'A97';
-                // Valor de codigoProfesional por defecto es P99
-                //diagnosticos(prestacion.turno.tipoPrestacion.conceptId, prestacion.turno._id) 
-                let codigoProfesional = 'P99';
-                let codigo = crearCodigoComp(comprobante, prestacion.createdAt, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
-                let unaPrestacion = await creaPrestaciones(prestacion.createdAt, idComprobante, codigo, pacienteSips, nomencladorSips, prestacion.createdAt, codigoPatologia);
-                let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
-                console.log('idPrestacion', idPrestacion);
+                    let codigoPatologia = 'A97';
+                    // Valor de codigoProfesional por defecto es P99
+                    //diagnosticos(prestacion.turno.tipoPrestacion.conceptId, prestacion.turno._id) 
+                    let codigoProfesional = 'P99';
+                    let codigo = crearCodigoComp(comprobante, prestacion.createdAt, pacienteSips, nomencladorSips, codigoPatologia, codigoProfesional);
+                    let unaPrestacion = await creaPrestaciones(prestacion.createdAt, idComprobante, codigo, pacienteSips, nomencladorSips, prestacion.createdAt, codigoPatologia);
+                    let idPrestacion = await sipsServiceSUMAR.insertPrestaciones(pool, unaPrestacion);
+                    console.log('idPrestacion', idPrestacion);
 
-                let datosReportables
-                if (prestacion.solicitud.tipoPrestacion.conceptId === "2091000013100") {
-                    datosReportables = await datosReportablesOto(configPrestaciones, null, 'sinTurno', prestacion, idPrestacion)
-                } else {
-                    let prest = [prestacion]
+                    let datosReportables
+                    if (prestacion.solicitud.tipoPrestacion.conceptId === "2091000013100") {
+                        datosReportables = await datosReportablesOto(configPrestaciones, null, 'sinTurno', prestacion, idPrestacion)
+                    } else {
+                        let prest = [prestacion]
 
-                    datosReportables = await datosReportablesGeneral(configPrestaciones, prestacion.paciente.id, idPrestacion, prestacion._id)
+                        datosReportables = await datosReportablesGeneral(configPrestaciones, prestacion.paciente.id, idPrestacion, prestacion._id)
+                    }
+
+                    for (let index = 0; index < datosReportables.length; index++) {
+                        const element = datosReportables[index];
+                        await sipsServiceSUMAR.insertDatosReportables(pool, element);
+
+                    }
+
+                    if (idPrestacion) {
+                        await andesService.cambioEstadoPrestacion(prestacion._id)
+                    }
+                    console.log("------fin prestaciones sin turno sumar-------")
+
                 }
-
-                for (let index = 0; index < datosReportables.length; index++) {
-                    const element = datosReportables[index];
-                    await sipsServiceSUMAR.insertDatosReportables(pool, element);
-
-                }
-
-                if (idPrestacion) {
-                    await andesService.cambioEstadoPrestacion(prestacion._id)
-                }
-                console.log("------fin prestaciones sin turno-------")
-
             }
-            // }
         }
     }
 
@@ -440,11 +438,10 @@ export async function ejecutar() {
                 idPacienteSips = pacienteSips.idPaciente;
             }
 
-            let obraSocialPuco: any = await andesService.getObraSocial(datosPrestacion.turno.paciente.documento)
-            console.log(obraSocialPuco)
+            let obraSocialPuco: any = await andesService.getObraSocialPuco(datosPrestacion.turno.paciente.documento)
             let unProfesional: any = await andesService.getProfesional(datosPrestacion.datosAgenda.profesionales[0]._id);
             let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento)
-            let rfObraSocial = (obraSocialPuco && obraSocialPuco.codigo) ? await sipsService.mapeoObraSocial(pool, obraSocialPuco.codigo) : null;
+            let rfObraSocial = (obraSocialPuco && obraSocialPuco[0].codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, obraSocialPuco[0].codigoFinanciador) : null;
             let codificacion = datosPrestacion.turno.motivoConsulta ? datosPrestacion.turno.motivoConsulta : getCodificacion(datosPrestacion);
             // QUEDA PENDIENTE EL DIAGNOSTICO ...
             // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
@@ -452,7 +449,7 @@ export async function ejecutar() {
             let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, datosPrestacion.turno.horaInicio);
             let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
             let rfTipoPractica = nomenclador.idTipoPractica;
-            crearOrden(orden, datosPrestacion.turno.horaInicio, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion,datosPrestacion.turno._id,'turno');
+            crearOrden(orden, datosPrestacion.turno.horaInicio, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, datosPrestacion.turno._id, 'turno');
             orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
             console.log("numero de orden", orden.idOrden)
             let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
@@ -465,21 +462,20 @@ export async function ejecutar() {
     }
 
     async function facturarPrestacionSinturnoRF(pool) {
-        console.log("prestaciones sin turno")
         let prestaciones: any = await andesService.getPrestacionesSinTurno();
         for (let index = 0; index < prestaciones.length; index++) {
             let prestacion = prestaciones[index];
-            let obraSocialPuco: any = await andesService.getObraSocial(prestacion.paciente.documento)
-            console.log(prestacion)
-            if (obraSocialPuco.codigo !== '499') {
+            // let obraSocialPuco: any = await andesService.getObraSocial(prestacion.paciente.documento)
+            // let obraSocialPuco: any = await andesService.getObraSocialPuco(prestacion.paciente.documento)
 
-                console.log('----- recupero ------')
+            if (prestacion.paciente.obraSocial && prestacion.paciente.obraSocial.codigoFinanciador !== 499) {
+
+                console.log('----- recupero sin turno ------')
                 let orden = ordenFactory();
                 let configuracionPrestacion: any = await await andesService.getConfiguracionPrestacion(prestacion.solicitud.tipoPrestacion.conceptId);
                 let codigoEfectorCUIE = await andesServiceSUMAR.getEfector(prestacion.createdBy.organizacion._id);
                 let efector = await sipsService.mapeoEfector(pool, codigoEfectorCUIE);
                 let idServicio = await sipsService.mapeoServicio(pool, configuracionPrestacion.idServicio); // PARAMETRO HARDCODEADO ???????
-               console.log("    ideeeee",configuracionPrestacion.idServicio)
                 let idPacienteSips;
                 let pacienteSips = await sipsService.mapeoPaciente(pool, prestacion.paciente.documento);
 
@@ -493,7 +489,7 @@ export async function ejecutar() {
 
                 let unProfesional: any = await andesService.getProfesional(prestacion.solicitud.profesional.id);
                 let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento);
-                let rfObraSocial = (obraSocialPuco && obraSocialPuco.codigo) ? await sipsService.mapeoObraSocial(pool, obraSocialPuco.codigo) : null;
+                let rfObraSocial = (prestacion.paciente.obraSocial && prestacion.paciente.obraSocial.codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, prestacion.paciente.obraSocial.codigoFinanciador) : null;
                 let codificacion = prestacion.motivoConsulta ? prestacion.motivoConsulta : getCodificacion(prestacion);
                 // QUEDA PENDIENTE EL DIAGNOSTICO ...
                 // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
@@ -503,9 +499,9 @@ export async function ejecutar() {
                 let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
                 let rfTipoPractica = nomenclador.idTipoPractica;
 
-                crearOrden(orden, prestacion.ejecucion.fecha, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, prestacion._id,'prestacion');
+                crearOrden(orden, prestacion.ejecucion.fecha, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, prestacion._id, 'prestacion');
                 orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
-                console.log(orden.idOrden)
+                console.log('id orden', orden.idOrden)
                 let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
                 await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
                 if (orden.idOrden) {
@@ -567,7 +563,7 @@ export async function ejecutar() {
         return result;
     }
 
-    function crearOrden(orden, fecha, rfEfector, rfServicio, rfPaciente, rfProfesional, rfTipoPractica, rfObraSocial, rfDiagnostico, objectId,descripcion) {
+    function crearOrden(orden, fecha, rfEfector, rfServicio, rfPaciente, rfProfesional, rfTipoPractica, rfObraSocial, rfDiagnostico, objectId, descripcion) {
         orden.idEfector = rfEfector;
         orden.idServicio = rfServicio;
         orden.idPaciente = rfPaciente;
@@ -578,7 +574,7 @@ export async function ejecutar() {
         orden.fecha = fecha;
         orden.fechaPractica = fecha; // Fecha de práctica es lo mismo que fecha de turno?
         orden.objectId = objectId,
-        orden.factAutomatico = descripcion
+            orden.factAutomatico = descripcion
     }
 
     function crearOrdenDetalle(orden, nomenclador) {
