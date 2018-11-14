@@ -438,10 +438,10 @@ export async function ejecutar() {
                 idPacienteSips = pacienteSips.idPaciente;
             }
 
-            let obraSocialPuco: any = await andesService.getObraSocialPuco(datosPrestacion.turno.paciente.documento)
+            // let obraSocialPuco: any = await andesService.getObraSocialPuco(datosPrestacion.turno.paciente.documento)
             let unProfesional: any = await andesService.getProfesional(datosPrestacion.datosAgenda.profesionales[0]._id);
             let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento)
-            let rfObraSocial = (obraSocialPuco && obraSocialPuco[0].codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, obraSocialPuco[0].codigoFinanciador) : null;
+            let rfObraSocial = (datosPrestacion.turno.paciente.obraSocial && datosPrestacion.turno.paciente.obraSocial.codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, datosPrestacion.turno.paciente.obraSocial.codigoFinanciador) : null;
             let codificacion = datosPrestacion.turno.motivoConsulta ? datosPrestacion.turno.motivoConsulta : getCodificacion(datosPrestacion);
             // QUEDA PENDIENTE EL DIAGNOSTICO ...
             // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
