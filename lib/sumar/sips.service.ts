@@ -122,7 +122,6 @@ export async function insertPrestaciones(pool, prestacion) {
 
 
 export async function insertDatosReportables(pool, datos) {
-    console.log(datos)
     let query = 'INSERT INTO [dbo].[PN_Rel_PrestacionXDatoReportable] ([idPrestacion],[idDatoReportable],[valor]) VALUES (@idPrestacion ,@idDatoReportable ,@valor)';
     let resultado = await new sql.Request(pool)
         .input('idPrestacion', sql.Int, datos.idPrestacion)

@@ -247,6 +247,5 @@ export async function mapeoObraSocial(pool, codigoObraSocial) {
     let result = await new sql.Request(pool)
     .input('codigo', sql.Int,  codigoObraSocial)
     .query(query);
-
     return result.recordset[0] ? result.recordset[0].idObraSocial : 0;
 }

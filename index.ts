@@ -122,6 +122,7 @@ export async function ejecutar() {
             // console.log(obraSocialPuco)
             if (prestacion.paciente.obraSocial && prestacion.paciente.obraSocial.codigoFinanciador === 499) {
                 // compruebo que este en afiliados
+                console.log("entre wacho")
                 let afiliadoSumar = await sipsServiceSUMAR.getAfiliadoSumar(pool, prestacion.paciente.documento);
                 if (afiliadoSumar) {
                     console.log("------prestaciones sin turno sumar-------")
@@ -227,14 +228,15 @@ export async function ejecutar() {
     function presionCheck(reg, idPrestacion, unDatoReportable) {
         let objDatoReportable;
         let valor = '';
-        reg.forEach(element => {
-            valor += element.valor + "/"
-        });
+        valor = reg[1].valor + '/' + reg[0].valor;
+        // reg.forEach(element => {
+        //     valor += element.valor + "/"
+        // });
         if (reg.length > 1) {
             objDatoReportable = {
                 idDatoReportable: unDatoReportable,
                 idPrestacion: idPrestacion,
-                valor: valor.slice(0, -1)
+                valor: valor
             };
         }
         return objDatoReportable;
@@ -441,23 +443,25 @@ export async function ejecutar() {
             // let obraSocialPuco: any = await andesService.getObraSocialPuco(datosPrestacion.turno.paciente.documento)
             let unProfesional: any = await andesService.getProfesional(datosPrestacion.datosAgenda.profesionales[0]._id);
             let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento)
-            let rfObraSocial = (datosPrestacion.turno.paciente.obraSocial && datosPrestacion.turno.paciente.obraSocial.codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, datosPrestacion.turno.paciente.obraSocial.codigoFinanciador) : null;
-            let codificacion = datosPrestacion.turno.motivoConsulta ? datosPrestacion.turno.motivoConsulta : getCodificacion(datosPrestacion);
-            // QUEDA PENDIENTE EL DIAGNOSTICO ...
-            // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
-            let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01';
-            let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, datosPrestacion.turno.horaInicio);
-            let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
-            let rfTipoPractica = nomenclador.idTipoPractica;
-            crearOrden(orden, datosPrestacion.turno.horaInicio, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, datosPrestacion.turno._id, 'turno');
-            orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
-            console.log("numero de orden", orden.idOrden)
-            let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
-            await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
-            if (orden.idOrden) {
-                cambioEstadoTurno(datosPrestacion.turno._id);
-            }
-            console.log('----- fin recupero ------')
+            let rfObraSocial = (datosPrestacion.turno.paciente.obraSocial && datosPrestacion.turno.paciente.obraSocial.codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, datosPrestacion.turno.paciente.obraSocial.codigoFinanciador) : 0;
+            if (rfObraSocial !== 0) {
+                let codificacion = datosPrestacion.turno.motivoConsulta ? datosPrestacion.turno.motivoConsulta : getCodificacion(datosPrestacion);
+                // QUEDA PENDIENTE EL DIAGNOSTICO ...
+                // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
+                let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01';
+                let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, datosPrestacion.turno.horaInicio);
+                let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
+                let rfTipoPractica = nomenclador.idTipoPractica;
+                crearOrden(orden, datosPrestacion.turno.horaInicio, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, datosPrestacion.turno._id, 'turno');
+                orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
+                console.log("numero de orden", orden.idOrden)
+                let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
+                await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
+                if (orden.idOrden) {
+                    cambioEstadoTurno(datosPrestacion.turno._id);
+                }
+                console.log('----- fin recupero ------')
+            } 
         }
     }
 
@@ -489,25 +493,28 @@ export async function ejecutar() {
 
                 let unProfesional: any = await andesService.getProfesional(prestacion.solicitud.profesional.id);
                 let rfProfesional = await sipsService.mapeoProfesional(pool, unProfesional.documento);
-                let rfObraSocial = (prestacion.paciente.obraSocial && prestacion.paciente.obraSocial.codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, prestacion.paciente.obraSocial.codigoFinanciador) : null;
-                let codificacion = prestacion.motivoConsulta ? prestacion.motivoConsulta : getCodificacion(prestacion);
-                // QUEDA PENDIENTE EL DIAGNOSTICO ...
-                // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
+                let rfObraSocial = (prestacion.paciente.obraSocial && prestacion.paciente.obraSocial.codigoFinanciador) ? await sipsService.mapeoObraSocial(pool, prestacion.paciente.obraSocial.codigoFinanciador) : 0;
+                if (rfObraSocial !== 0) {
+                    let codificacion = prestacion.motivoConsulta ? prestacion.motivoConsulta : getCodificacion(prestacion);
+                    // QUEDA PENDIENTE EL DIAGNOSTICO ...
+                    // let rfDiagnostico = (codificacion) ? await mapeoDiagnostico(codificacion) : null;
 
-                let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01';
-                let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, prestacion.ejecucion.fecha);
-                let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
-                let rfTipoPractica = nomenclador.idTipoPractica;
+                    let codNomenclador = configuracionPrestacion ? configuracionPrestacion.nomencladorRecuperoFinanciero : '42.01.01';
+                    let idTipoNomenclador = await sipsServiceRF.getTipoNomenclador(pool, rfObraSocial, prestacion.ejecucion.fecha);
+                    let nomenclador = await sipsServiceRF.mapeoNomenclador(pool, codNomenclador, idTipoNomenclador);
+                    let rfTipoPractica = nomenclador.idTipoPractica;
 
-                crearOrden(orden, prestacion.ejecucion.fecha, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, prestacion._id, 'prestacion');
-                orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
-                console.log('id orden', orden.idOrden)
-                let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
-                await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
-                if (orden.idOrden) {
-                    await andesService.cambioEstadoPrestacion(prestacion._id)
-                }
-                console.log('----- fin recupero ------')
+                    crearOrden(orden, prestacion.ejecucion.fecha, efector.idEfector, idServicio, idPacienteSips, rfProfesional, rfTipoPractica, rfObraSocial, codificacion, prestacion._id, 'prestacion');
+                    orden.idOrden = await sipsServiceRF.guardarOrden(pool, orden);
+                    console.log('id orden', orden.idOrden)
+                    let ordenDetalleSips = crearOrdenDetalle(orden, nomenclador);
+                    await sipsServiceRF.guardarOrdenDetalle(pool, ordenDetalleSips);
+                    if (orden.idOrden) {
+                        await andesService.cambioEstadoPrestacion(prestacion._id)
+                    }
+                    console.log('----- fin recupero ------')
+                } 
+
             }
 
 
